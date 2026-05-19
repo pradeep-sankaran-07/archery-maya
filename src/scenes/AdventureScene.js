@@ -120,16 +120,23 @@ export default class AdventureScene extends Phaser.Scene {
   }
 
   buildSegment(segment) {
-    // Tear down previous
+    // Tear down previous — including direct-to-scene sprites that aren't in
+    // `this.world` (pipe, flag, hp bar all live on the scene root).
+    if (this.pipe && this.pipe.destroy) this.pipe.destroy();
+    if (this.flagpole && this.flagpole.destroy) this.flagpole.destroy();
+    if (this.flagSprite && this.flagSprite.destroy) this.flagSprite.destroy();
+    if (this.flagZone && this.flagZone.destroy) this.flagZone.destroy();
+    if (this.kupal && this.kupal.hpBar && this.kupal.hpBar.destroy) this.kupal.hpBar.destroy();
     if (this.world) this.world.destroy(true);
     this.world = this.add.container(0, 0);
     this.segment = segment;
     this.platforms = this.physics.add.staticGroup();
     this.coins = this.physics.add.group({ allowGravity: false });
     this.enemies = this.physics.add.group({ allowGravity: segment !== 'water' });
-    this.activeArrows = this.physics.add.group({ allowGravity: segment !== 'water' });
+    this.activeArrows = this.physics.add.group({ allowGravity: false });
     this.flagpole = null;
     this.flagSprite = null;
+    this.flagZone = null;
     this.pipe = null;
     this.goalReached = false;
     this.bossWall = [];
@@ -291,7 +298,10 @@ export default class AdventureScene extends Phaser.Scene {
       e.value = 3;
     } else if (kind === 'kupal') {
       e.setScale(1.0);
-      e.body.setSize(140, 110, true);
+      // Body sits in the lower half of the 220x160 texture so Kupal's drawn
+      // feet (around texture y=148) line up with the ground platform top.
+      e.body.setSize(140, 110, false);
+      e.body.setOffset(40, 38);
       e.setVelocityX(-30);
       e.hp = 10;
       e.maxHp = 10;
@@ -476,9 +486,11 @@ export default class AdventureScene extends Phaser.Scene {
     this.player.lastShoot = now;
     const dir = this.player.facing === 'left' ? -1 : 1;
     const arrow = this.activeArrows.create(this.player.x + dir * 40, this.player.y - 10, `arrow_${this.arrowDef.id}`);
-    arrow.body.setAllowGravity(this.segment !== 'water');
-    arrow.setVelocityX(dir * 700);
-    if (this.segment === 'water') arrow.setVelocityY(0);
+    // Arrows fly straight horizontally — no gravity drop in the platformer
+    // so you don't have to be right next to enemies (or Kupal) to land hits.
+    arrow.body.setAllowGravity(false);
+    arrow.setVelocityX(dir * 800);
+    arrow.setVelocityY(0);
     arrow.setFlipX(dir < 0);
     SFX.shoot();
     // auto-destroy after 2s
