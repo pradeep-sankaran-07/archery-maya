@@ -26,17 +26,18 @@ const WORLD_HEIGHT = 11; // tiles
  */
 
 // Designed levels — chunk by chunk
+// LAND_SEGMENT — stair-stepped so every coin and platform is reachable
+// from a single jump (2.7 tiles ≈ 175 px). The "=" stairs ramp up.
 const LAND_SEGMENT = [
-  // 11 rows tall, ~40 columns wide
   '........................................',
   '........................................',
   '........................................',
-  '..........C.............................',
-  '....C.....=......C.C....................',
-  '..........==......B.....................',
   '........................................',
-  '.........C.............C................',
-  '........T....S.....T.......S......C..P..',
+  '...............C........................',
+  '..............==..........C.............',
+  '......C......===.........==.....C.......',
+  '.....==.....====...C....===....==.......',
+  '....S......======T.....====.S..===T..P..',
   '##############################=#########',
   '########################################',
 ];
@@ -55,16 +56,17 @@ const WATER_SEGMENT = [
   '########################################',
 ];
 
+// FINAL_SEGMENT — gentle climb up to the flagpole, every step reachable.
 const FINAL_SEGMENT = [
   '........................................',
   '........................................',
-  '...........................G............',
-  '...........................|............',
-  '....C............C.........|............',
-  '..........=................|............',
-  '..........==..............=|=...........',
-  '.........................==|==..........',
-  '...........................|............',
+  '........................................',
+  '........................................',
+  '...........C......C........G............',
+  '..........==.....==........|............',
+  '.....C...===....===.......=|=...........',
+  '....==..====...====.......=|=...........',
+  '...===.=====..=====.......=|=...........',
   '########################################',
   '########################################',
 ];
@@ -88,7 +90,7 @@ export default class AdventureScene extends Phaser.Scene {
     this.buildSegment(this.segment);
 
     // HUD
-    this.hud = createHUD(this, { hearts: 3, money: state.money, label: 'Adventure!' });
+    this.hud = createHUD(this, { hearts: 3, money: state.money, label: 'Adventure!', character: this.charDef });
     this.hud.setHearts(this.hearts);
 
     // Keys
@@ -316,7 +318,8 @@ export default class AdventureScene extends Phaser.Scene {
       else this.player.setVelocityY(this.player.body.velocity.y * 0.95);
     }
 
-    // Enemy AI
+    // Enemy AI — and face their movement direction. Sprites are drawn with
+    // the head on the right, so vx>0 = unflipped, vx<0 = flipX.
     this.enemies.children.iterate((e) => {
       if (!e || !e.active) return;
       if (e.kind === 'snake') {
@@ -339,6 +342,10 @@ export default class AdventureScene extends Phaser.Scene {
         e.y = e.baseY + Math.sin(this.time.now / 500 + e.x * 0.01) * 12;
         if (e.x < 0) e.setVelocityX(40);
         if (e.x > this.physics.world.bounds.right) e.setVelocityX(-40);
+      }
+      // Face direction of travel (skip jellyfish — vertical only)
+      if (e.kind !== 'jellyfish' && Math.abs(e.body.velocity.x) > 1) {
+        e.setFlipX(e.body.velocity.x < 0);
       }
     });
 
@@ -420,18 +427,13 @@ export default class AdventureScene extends Phaser.Scene {
 
   arrowHitEnemy(arrow, enemy) {
     if (!enemy.active) return;
-    if (enemy.kind === 'jellyfish') {
-      // Jellyfish can't be shot — arrow bounces / dies
-      if (arrow.destroy) arrow.destroy();
-      return;
-    }
     if (arrow.destroy) arrow.destroy();
     if (enemy.kind === 'fish') {
       // Fish gives money/food
       const state = this.registry.get('gameState');
       state.money += enemy.value || 3;
       this.hud.setMoney(state.money);
-      const t = this.add.text(enemy.x, enemy.y - 20, `+$${enemy.value || 3}`, {
+      const t = this.add.text(enemy.x, enemy.y - 20, `+${enemy.value || 3} kr`, {
         fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '700',
         color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
       }).setOrigin(0.5);

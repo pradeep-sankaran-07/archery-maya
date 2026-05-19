@@ -45,19 +45,20 @@ export const CHARACTERS = [
   { id: 'aisha', name: 'Aisha', group: 'Kids', body: 0xff9ec1, accent: 0xb8467a, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
   { id: 'isma', name: 'Isma', group: 'Kids', body: 0x4a90e2, accent: 0x1f4d8a, hair: 0x2b1a12, isPet: false, isAdult: false, isElder: false },
   { id: 'tejas', name: 'Tejas', group: 'Kids', body: 0xffc94a, accent: 0x8a6500, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
-  // Adults
+  // Grown-ups (parents, aunty/uncle, grandparents, periappa/periamma/tito mico all consolidated here)
   { id: 'pradeep', name: 'Pradeep', group: 'Grown-ups', body: 0x4a90e2, accent: 0x14315a, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
   { id: 'karen', name: 'Karen', group: 'Grown-ups', body: 0xff7eb3, accent: 0x6a1e44, hair: 0xb87333, isPet: false, isAdult: true, isElder: false },
-  // Grandparents
-  { id: 'thatha', name: 'Thatha', group: 'Grandparents', body: 0xb8a48a, accent: 0x5e4a30, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
-  { id: 'paati', name: 'Paati', group: 'Grandparents', body: 0xf2c89c, accent: 0x7a3b3b, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
-  { id: 'lolo', name: 'Lolo', group: 'Grandparents', body: 0x9fbfa6, accent: 0x3f6b46, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
-  { id: 'lola', name: 'Lola', group: 'Grandparents', body: 0xe8b7c8, accent: 0x7a3a4a, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
-  // Aunt / Uncle
-  { id: 'ninang', name: 'Ninang', group: 'Aunty & Uncle', body: 0xff9ec1, accent: 0x8a1c46, hair: 0x2b1a12, isPet: false, isAdult: true, isElder: false },
-  { id: 'dk', name: 'DK', group: 'Aunty & Uncle', body: 0x6ba368, accent: 0x2c5826, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
-  // Pet
-  { id: 'benji', name: 'Benji', group: 'Pet', body: 0xc88a52, accent: 0x6b4520, hair: 0x6b4520, isPet: true, isAdult: false, isElder: false },
+  { id: 'ninang', name: 'Ninang', group: 'Grown-ups', body: 0xff9ec1, accent: 0x8a1c46, hair: 0x2b1a12, isPet: false, isAdult: true, isElder: false },
+  { id: 'dk', name: 'DK', group: 'Grown-ups', body: 0x6ba368, accent: 0x2c5826, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
+  { id: 'periappa', name: 'Periappa', group: 'Grown-ups', body: 0x6b4f3a, accent: 0x3a2818, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
+  { id: 'periamma', name: 'Periamma', group: 'Grown-ups', body: 0xd4a5c3, accent: 0x7a4566, hair: 0x2b1a12, isPet: false, isAdult: true, isElder: false },
+  { id: 'titomico', name: 'Tito Mico', group: 'Grown-ups', body: 0x4a7a5c, accent: 0x224a2f, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
+  { id: 'thatha', name: 'Thatha', group: 'Grown-ups', body: 0xb8a48a, accent: 0x5e4a30, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
+  { id: 'paati', name: 'Paati', group: 'Grown-ups', body: 0xf2c89c, accent: 0x7a3b3b, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
+  { id: 'lolo', name: 'Lolo', group: 'Grown-ups', body: 0x9fbfa6, accent: 0x3f6b46, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
+  { id: 'lola', name: 'Lola', group: 'Grown-ups', body: 0xe8b7c8, accent: 0x7a3a4a, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
+  // Pets
+  { id: 'benji', name: 'Benji', group: 'Pets', body: 0xc88a52, accent: 0x6b4520, hair: 0x6b4520, isPet: true, isAdult: false, isElder: false },
 ];
 
 export const BOWS = [
@@ -76,12 +77,19 @@ export const ARROW_COLORS = [
 export const PHYSICS = {
   gravity: 900,
   playerSpeed: 220,
-  jumpVelocity: -520,
+  jumpVelocity: -560,
   swimGravity: 60,
   swimSpeed: 180,
   swimAccel: 280,
-  arrowSpeed: 720,
-  arrowGravity: 600,
+  arrowSpeed: 880,
+  arrowGravity: 200,
+};
+
+// Norwegian kroner. Standard short form is "kr".
+export const CURRENCY = {
+  code: 'kr',
+  name: 'kroner',
+  format: (n) => `${n} kr`,
 };
 
 export const ITEMS = [

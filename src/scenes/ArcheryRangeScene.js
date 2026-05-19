@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, BOWS, ARROW_COLORS, PALETTE, PHYSICS } from '../config.js';
+import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, BOWS, ARROW_COLORS, PALETTE, PHYSICS, CURRENCY } from '../config.js';
 import { createHUD } from '../ui/HUD.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
@@ -45,9 +45,9 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       grass.fillTriangle(x, groundY, x + 11, groundY - 14, x + 22, groundY);
     }
 
-    // "Archery range" sign
-    this.add.text(GAME_WIDTH / 2, 30, this.moving ? 'Moving Target Range' : 'Archery Range', {
-      fontFamily: 'Fredoka', fontSize: '32px', fontStyle: '700',
+    // "Archery range" sign — sits below the top-center logo banner
+    this.add.text(GAME_WIDTH / 2, 80, this.moving ? 'Moving Target Range' : 'Archery Range', {
+      fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
       color: '#ffffff', stroke: '#3a1f5e', strokeThickness: 6,
     }).setOrigin(0.5, 0);
 
@@ -77,12 +77,12 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     // Game state
     this.arrowsLeft = ARROWS_PER_ROUND;
     this.roundMoney = 0;
-    this.hud = createHUD(this, { money: state.money, label: `Arrows left: ${this.arrowsLeft}` });
+    this.hud = createHUD(this, { money: state.money, label: `Arrows left: ${this.arrowsLeft}`, character: char });
 
     // Aim hint
-    this.add.text(GAME_WIDTH / 2, 80,
+    this.add.text(GAME_WIDTH / 2, 125,
       'Hold ↑ or ↓ to aim • SPACE to shoot', {
-        fontFamily: 'Fredoka', fontSize: '20px', color: '#3a1f5e',
+        fontFamily: 'Fredoka', fontSize: '18px', color: '#3a1f5e',
         backgroundColor: '#fff7e6cc', padding: { x: 12, y: 6 },
       }).setOrigin(0.5);
 
@@ -112,14 +112,18 @@ export default class ArcheryRangeScene extends Phaser.Scene {
   }
 
   spawnTargets() {
-    // 5 targets stationary at varying heights, 3 if moving
+    // Targets at widely-spread Y bands so each one needs a unique aim angle
+    // and the closer ones can't shadow the farther ones along a single arc.
     const positions = this.moving
       ? [
-          { x: 720, y: 220 }, { x: 950, y: 360 }, { x: 1130, y: 250 },
+          { x: 780, y: 240 }, { x: 980, y: 410 }, { x: 1190, y: 200 },
         ]
       : [
-          { x: 620, y: 380 }, { x: 760, y: 280 }, { x: 900, y: 420 },
-          { x: 1050, y: 320 }, { x: 1180, y: 240 },
+          { x: 600, y: 460 }, // closest, low
+          { x: 780, y: 220 }, // mid, high
+          { x: 920, y: 380 }, // mid-far, low
+          { x: 1080, y: 180 }, // far, top
+          { x: 1200, y: 320 }, // farthest, mid
         ];
     positions.forEach((p, i) => {
       const img = this.add.image(p.x, p.y, 'target').setScale(0.85);
@@ -137,8 +141,8 @@ export default class ArcheryRangeScene extends Phaser.Scene {
 
   update(_t, dt) {
     const dts = dt / 1000;
-    if (this.keys.up.isDown) this.aimAngle = Math.max(-1.0, this.aimAngle - 1.2 * dts);
-    if (this.keys.down.isDown) this.aimAngle = Math.min(0.2, this.aimAngle + 1.2 * dts);
+    if (this.keys.up.isDown) this.aimAngle = Math.max(-1.2, this.aimAngle - 1.2 * dts);
+    if (this.keys.down.isDown) this.aimAngle = Math.min(0.35, this.aimAngle + 1.2 * dts);
     this.bow.setRotation(this.aimAngle);
 
     // Aim preview parabola
@@ -160,26 +164,36 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     if (this.moving) {
       this.targets.forEach((t, i) => {
         if (!t.active) return;
-        const wave = Math.sin(this.time.now / 600 + t.phase) * 80;
+        const wave = Math.sin(this.time.now / 600 + t.phase) * 100;
         t.sprite.y = t.baseY + wave;
       });
     }
 
-    // Update arrows (manual physics; we want sticky landing)
+    // Update arrows. Stuck arrows ride their target (works for both static and
+    // moving targets — static targets simply don't move).
     for (const a of this.activeArrows) {
-      if (a.stuck) continue;
+      if (a.stuck) {
+        if (a.stuckTo && a.stuckTo.active) {
+          a.sprite.setPosition(
+            a.stuckTo.sprite.x + a.stuckOffsetX,
+            a.stuckTo.sprite.y + a.stuckOffsetY,
+          );
+        }
+        continue;
+      }
       a.vy += PHYSICS.arrowGravity * dts;
       a.x += a.vx * dts;
       a.y += a.vy * dts;
       a.sprite.setPosition(a.x, a.y);
       a.sprite.setRotation(Math.atan2(a.vy, a.vx));
-      // collide with targets
+      // collide with targets — tighter hit so arrows don't catch on the
+      // transparent rim outside the painted rings
       for (const t of this.targets) {
         if (!t.active) continue;
         const dx = a.x - t.sprite.x;
         const dy = a.y - t.sprite.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < t.radius) {
+        if (dist < t.radius * 0.95) {
           this.handleHit(a, t, dist);
           break;
         }
@@ -220,18 +234,22 @@ export default class ArcheryRangeScene extends Phaser.Scene {
 
   handleHit(arrow, target, dist) {
     arrow.stuck = true;
-    arrow.sprite.setPosition(target.sprite.x + (arrow.x - target.sprite.x) * 0.85, target.sprite.y + (arrow.y - target.sprite.y) * 0.85);
-    // Score by ring
+    // Anchor the arrow to the target so it rides along (matters on moving targets)
+    arrow.stuckTo = target;
+    arrow.stuckOffsetX = (arrow.x - target.sprite.x) * 0.92;
+    arrow.stuckOffsetY = (arrow.y - target.sprite.y) * 0.92;
+    arrow.sprite.setPosition(target.sprite.x + arrow.stuckOffsetX, target.sprite.y + arrow.stuckOffsetY);
+    // Score by ring (tighter rings — bullseye + 3 outer bands + edge)
     const r = target.radius;
     let prize = 1;
-    if (dist < r * 0.20) prize = this.moving ? 8 : 5;
-    else if (dist < r * 0.40) prize = this.moving ? 5 : 3;
-    else if (dist < r * 0.70) prize = this.moving ? 3 : 2;
+    if (dist < r * 0.18) prize = this.moving ? 8 : 5;
+    else if (dist < r * 0.36) prize = this.moving ? 5 : 3;
+    else if (dist < r * 0.62) prize = this.moving ? 3 : 2;
     else prize = this.moving ? 2 : 1;
-    if (dist < r * 0.20) SFX.bullseye(); else SFX.hit();
+    if (dist < r * 0.18) SFX.bullseye(); else SFX.hit();
     SFX.coin();
     // Show floating prize text
-    const t = this.add.text(target.sprite.x, target.sprite.y - 30, `+$${prize}`, {
+    const t = this.add.text(target.sprite.x, target.sprite.y - 30, `+${prize} kr`, {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
       color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
     }).setOrigin(0.5);
@@ -265,7 +283,7 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     card.strokeRoundedRect(GAME_WIDTH / 2 - 280, GAME_HEIGHT / 2 - 160, 560, 320, 24);
 
     const txt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80,
-      `Nice shooting!\n\nYou earned $${this.roundMoney} this round.\nTotal: $${state.money}`,
+      `Nice shooting!\n\nYou earned ${this.roundMoney} kr this round.\nTotal: ${state.money} kr`,
       {
         fontFamily: 'Fredoka', fontSize: '28px', color: '#3a1f5e',
         align: 'center', lineSpacing: 8,

@@ -6,7 +6,7 @@ import { SFX } from '../art/audio.js';
 import { pickProblems } from '../math/problems.js';
 import { save } from '../save.js';
 
-const PROBLEMS_PER_PLAY = 6;
+const PROBLEMS_PER_PLAY = 8;
 
 export default class GroceryScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.Grocery); }
@@ -30,7 +30,7 @@ export default class GroceryScene extends Phaser.Scene {
       const x = 140 + col * 130;
       const y = 130 + row * 110;
       this.add.text(x, y, it.emoji, { fontSize: '40px' }).setOrigin(0.5);
-      this.add.text(x, y + 36, `$${it.price}`, {
+      this.add.text(x, y + 36, `${it.price} kr`, {
         fontFamily: 'Fredoka', fontSize: '16px', fontStyle: '700',
         color: '#fff7e6', backgroundColor: '#3a1f5e', padding: { x: 6, y: 2 },
       }).setOrigin(0.5);
@@ -40,16 +40,16 @@ export default class GroceryScene extends Phaser.Scene {
     const tableY = GAME_HEIGHT - 130;
     this.add.rectangle(GAME_WIDTH / 2, tableY, GAME_WIDTH, 8, 0x8b5a2b);
 
-    // Title
-    this.add.text(GAME_WIDTH / 2, 40, '🛒  Grocery store math!', {
-      fontFamily: 'Fredoka', fontSize: '32px', fontStyle: '700',
+    // Title — sits below the top-center logo banner
+    this.add.text(GAME_WIDTH / 2, 86, '🛒  Grocery store math!', {
+      fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
       color: '#3a1f5e',
     }).setOrigin(0.5);
 
     // Character on left
     this.add.image(110, GAME_HEIGHT - 90, `char_${char.id}_idle`).setScale(1.1);
 
-    this.hud = createHUD(this, { money: state.money, label: 'Store' });
+    this.hud = createHUD(this, { money: state.money, label: 'Store', character: char });
 
     // Pick 6 random problems
     this.problems = pickProblems(PROBLEMS_PER_PLAY, state.money);
@@ -158,7 +158,10 @@ export default class GroceryScene extends Phaser.Scene {
   finish() {
     const state = this.registry.get('gameState');
     const bonus = 5;
-    const streak = this.firstTryCorrect >= 5 ? 3 : 0;
+    // Streak bonus: 6+ correct → 5 kr; perfect 8/8 → 10 kr
+    let streak = 0;
+    if (this.firstTryCorrect >= this.problems.length) streak = 10;
+    else if (this.firstTryCorrect >= 6) streak = 5;
     state.money += bonus + streak;
     this.hud.setMoney(state.money);
     save({ totalMoney: state.money });
@@ -170,9 +173,9 @@ export default class GroceryScene extends Phaser.Scene {
     card.lineStyle(4, 0x3a1f5e, 1);
     card.strokeRoundedRect(GAME_WIDTH / 2 - 320, GAME_HEIGHT / 2 - 180, 640, 360, 24);
 
-    const txt = `Great work!\n\n${this.firstTryCorrect} out of ${this.problems.length} correct on first try.\n\nStore bonus: +$${bonus}` +
-      (streak ? `\nStreak bonus: +$${streak}` : '') +
-      `\n\nTotal money: $${state.money}`;
+    const txt = `Great work!\n\n${this.firstTryCorrect} out of ${this.problems.length} correct on first try.\n\nStore bonus: +${bonus} kr` +
+      (streak ? `\nStreak bonus: +${streak} kr` : '') +
+      `\n\nTotal money: ${state.money} kr`;
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30, txt, {
       fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
       align: 'center', lineSpacing: 6,

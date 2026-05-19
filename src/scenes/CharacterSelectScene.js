@@ -1,10 +1,17 @@
 import Phaser from 'phaser';
-import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, PALETTE } from '../config.js';
+import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
 
-const GROUPS = ['Kids', 'Grown-ups', 'Grandparents', 'Aunty & Uncle', 'Pet'];
+const GROUPS = ['Kids', 'Grown-ups', 'Pets'];
+
+// Per-group layout. Grown-ups has 11 entries so it gets smaller cells.
+const LAYOUTS = {
+  Kids:        { cellW: 110, baseScale: 0.55, hoverScale: 0.60, selectedScale: 0.70, ringR: 34, startX: 60 },
+  'Grown-ups': { cellW: 100, baseScale: 0.50, hoverScale: 0.55, selectedScale: 0.62, ringR: 30, startX: 50 },
+  Pets:        { cellW: 110, baseScale: 0.55, hoverScale: 0.60, selectedScale: 0.70, ringR: 34, startX: 60 },
+};
 
 export default class CharacterSelectScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.CharacterSelect); }
@@ -21,37 +28,40 @@ export default class CharacterSelectScene extends Phaser.Scene {
 
     const state = this.registry.get('gameState');
     let selectedId = state.character || CHARACTERS[0].id;
+    if (!CHARACTERS.find((c) => c.id === selectedId)) selectedId = CHARACTERS[0].id;
     const portraits = new Map();
 
-    // Lay out groups vertically — compact
+    // Lay out groups vertically. With 3 groups we have plenty of room.
     let y = 90;
     GROUPS.forEach((group) => {
       const inGroup = CHARACTERS.filter((c) => c.group === group);
       if (!inGroup.length) return;
-      this.add.text(40, y, group, {
-        fontFamily: 'Fredoka', fontSize: '20px', fontStyle: '600',
+      const layout = LAYOUTS[group];
+      this.add.text(layout.startX - 10, y, group, {
+        fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600',
         color: '#5a3a8a',
       });
-      const startX = 40;
-      const cellW = 95;
       inGroup.forEach((c, idx) => {
-        const x = startX + idx * cellW + 46;
-        const yy = y + 60;
-        const portrait = this.add.image(x, yy, `portrait_${c.id}`).setScale(0.52);
+        const x = layout.startX + idx * layout.cellW + layout.cellW / 2;
+        const yy = y + 70;
+        const portrait = this.add.image(x, yy, `portrait_${c.id}`).setScale(layout.baseScale);
         portrait.setInteractive({ useHandCursor: true });
-        const nameTxt = this.add.text(x, yy + 42, c.name, {
-          fontFamily: 'Fredoka', fontSize: '14px', color: '#3a1f5e',
+        const nameTxt = this.add.text(x, yy + 50, c.name, {
+          fontFamily: 'Fredoka', fontSize: '15px', color: '#3a1f5e',
         }).setOrigin(0.5);
-        portrait.on('pointerover', () => this.tweens.add({ targets: portrait, scale: 0.58, duration: 120 }));
+        portrait.on('pointerover', () =>
+          this.tweens.add({ targets: portrait, scale: layout.hoverScale, duration: 120 })
+        );
         portrait.on('pointerout', () => {
-          if (selectedId !== c.id) this.tweens.add({ targets: portrait, scale: 0.52, duration: 120 });
+          if (selectedId !== c.id)
+            this.tweens.add({ targets: portrait, scale: layout.baseScale, duration: 120 });
         });
         portrait.on('pointerdown', () => {
           selectedId = c.id;
           SFX.select();
           portraits.forEach((p, id) => {
             const sel = id === selectedId;
-            p.portrait.setScale(sel ? 0.66 : 0.52);
+            p.portrait.setScale(sel ? p.layout.selectedScale : p.layout.baseScale);
             p.ring.setVisible(sel);
             p.nameTxt.setColor(sel ? '#ff5a5f' : '#3a1f5e');
           });
@@ -59,15 +69,15 @@ export default class CharacterSelectScene extends Phaser.Scene {
         });
         const ring = this.add.graphics();
         ring.lineStyle(3, 0xff5a5f, 1);
-        ring.strokeCircle(x, yy, 32);
+        ring.strokeCircle(x, yy, layout.ringR);
         ring.setVisible(selectedId === c.id);
         if (selectedId === c.id) {
-          portrait.setScale(0.66);
+          portrait.setScale(layout.selectedScale);
           nameTxt.setColor('#ff5a5f');
         }
-        portraits.set(c.id, { portrait, ring, nameTxt });
+        portraits.set(c.id, { portrait, ring, nameTxt, layout });
       });
-      y += 108;
+      y += 150;
     });
 
     const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50,

@@ -53,9 +53,9 @@ export default class VictoryScene extends Phaser.Scene {
     // Stats panel
     const sv = this.registry.get('save');
     this.add.text(GAME_WIDTH / 2, 320,
-      `Total money: $${state.money}\n` +
-      `Archery high score: $${sv.highScores?.archery1 ?? 0}\n` +
-      `Moving target high: $${sv.highScores?.archery2 ?? 0}`,
+      `Total money: ${state.money} kr\n` +
+      `Archery high score: ${sv.highScores?.archery1 ?? 0} kr\n` +
+      `Moving target high: ${sv.highScores?.archery2 ?? 0} kr`,
       {
         fontFamily: 'Fredoka', fontSize: '24px', color: '#fff7e6',
         align: 'center', lineSpacing: 8, backgroundColor: '#3a1f5ecc',
