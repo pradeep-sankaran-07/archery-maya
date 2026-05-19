@@ -1,0 +1,187 @@
+import Phaser from 'phaser';
+import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, ITEMS, PALETTE, CHARACTERS } from '../config.js';
+import { createHUD } from '../ui/HUD.js';
+import { makeButton } from '../ui/Button.js';
+import { SFX } from '../art/audio.js';
+import { pickProblems } from '../math/problems.js';
+import { save } from '../save.js';
+
+const PROBLEMS_PER_PLAY = 6;
+
+export default class GroceryScene extends Phaser.Scene {
+  constructor() { super(SCENE_KEYS.Grocery); }
+
+  create() {
+    const state = this.registry.get('gameState');
+    const char = CHARACTERS.find((c) => c.id === state.character) || CHARACTERS[0];
+
+    // Store interior — soft yellow walls
+    const bg = this.add.graphics();
+    bg.fillStyle(0xfff1d6, 1); bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    bg.fillStyle(0xeacb95, 1); bg.fillRect(0, GAME_HEIGHT - 130, GAME_WIDTH, 130);
+
+    // Shelves on top
+    this.add.image(GAME_WIDTH / 2, 230, 'shelf').setScale(1.3, 0.9);
+
+    // Item icons on shelves (drawn as text)
+    ITEMS.forEach((it, i) => {
+      const row = Math.floor(i / 8);
+      const col = i % 8;
+      const x = 140 + col * 130;
+      const y = 130 + row * 110;
+      this.add.text(x, y, it.emoji, { fontSize: '40px' }).setOrigin(0.5);
+      this.add.text(x, y + 36, `$${it.price}`, {
+        fontFamily: 'Fredoka', fontSize: '16px', fontStyle: '700',
+        color: '#fff7e6', backgroundColor: '#3a1f5e', padding: { x: 6, y: 2 },
+      }).setOrigin(0.5);
+    });
+
+    // Cashier table
+    const tableY = GAME_HEIGHT - 130;
+    this.add.rectangle(GAME_WIDTH / 2, tableY, GAME_WIDTH, 8, 0x8b5a2b);
+
+    // Title
+    this.add.text(GAME_WIDTH / 2, 40, '🛒  Grocery store math!', {
+      fontFamily: 'Fredoka', fontSize: '32px', fontStyle: '700',
+      color: '#3a1f5e',
+    }).setOrigin(0.5);
+
+    // Character on left
+    this.add.image(110, GAME_HEIGHT - 90, `char_${char.id}_idle`).setScale(1.1);
+
+    this.hud = createHUD(this, { money: state.money, label: 'Store' });
+
+    // Pick 6 random problems
+    this.problems = pickProblems(PROBLEMS_PER_PLAY, state.money);
+    this.problemIndex = 0;
+    this.firstTryCorrect = 0;
+    this.shownProblem = null;
+
+    this.nextProblem();
+  }
+
+  nextProblem() {
+    if (this.shownProblem) this.shownProblem.destroy();
+    if (this.problemIndex >= this.problems.length) {
+      this.finish();
+      return;
+    }
+    const p = this.problems[this.problemIndex];
+    this.shownProblem = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
+
+    // Card bg
+    const cardW = 880, cardH = 320;
+    const card = this.add.graphics();
+    card.fillStyle(0xfff7e6, 1);
+    card.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 24);
+    card.lineStyle(4, 0x3a1f5e, 1);
+    card.strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 24);
+    this.shownProblem.add(card);
+
+    // Question text
+    const qTxt = this.add.text(0, -cardH / 2 + 70, p.prompt, {
+      fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
+      align: 'center', lineSpacing: 8, wordWrap: { width: cardW - 60 },
+    }).setOrigin(0.5);
+    this.shownProblem.add(qTxt);
+
+    // Progress dot indicator
+    const dots = this.add.container(0, -cardH / 2 + 18);
+    for (let i = 0; i < this.problems.length; i++) {
+      const dot = this.add.circle(-((this.problems.length - 1) * 8) + i * 16, 0, 5,
+        i < this.problemIndex ? 0x4caf50 : i === this.problemIndex ? 0xff5a5f : 0xbbbbbb);
+      dots.add(dot);
+    }
+    this.shownProblem.add(dots);
+
+    // Choices
+    const choices = p.choices.map(String);
+    const isYesNo = p.type === 'yesno';
+    const btnY = cardH / 2 - 70;
+    let firstWrong = false;
+    choices.forEach((choice, idx) => {
+      const spacing = cardW / (choices.length + 1);
+      const x = -cardW / 2 + spacing * (idx + 1);
+      const label = isYesNo ? (choice === 'yes' ? '✅ Yes' : '❌ No') : choice;
+      const w = isYesNo ? 200 : Math.max(120, Math.min(220, 30 + label.length * 18));
+      const btn = makeButton(this, x, btnY, label, {
+        width: w, height: 64, fontSize: 26,
+        color: isYesNo ? (choice === 'yes' ? 0x4caf50 : 0xff7e7e) : 0x4a90e2,
+        hoverColor: isYesNo ? (choice === 'yes' ? 0x6bc06f : 0xff9a9a) : 0x6aa9eb,
+        textColor: '#ffffff',
+        onClick: () => {
+          const correct = String(p.correct).toLowerCase() === choice.toLowerCase();
+          if (correct) {
+            SFX.correct();
+            if (!firstWrong) this.firstTryCorrect += 1;
+            // Bonus coin for hard problems
+            const state = this.registry.get('gameState');
+            state.money += 1;
+            this.hud.setMoney(state.money);
+            this.popStar(this.shownProblem.x + x, this.shownProblem.y + btnY);
+            this.problemIndex += 1;
+            this.time.delayedCall(700, () => this.nextProblem());
+          } else {
+            firstWrong = true;
+            SFX.wrong();
+            this.tweens.add({ targets: btn, x: x - 6, duration: 60, yoyo: true, repeat: 2 });
+            // After second wrong, reveal answer
+            if (!btn._wrongCount) btn._wrongCount = 0;
+            btn._wrongCount += 1;
+            if (btn._wrongCount >= 2) {
+              this.revealAnswer(p);
+            }
+          }
+        },
+      });
+      this.shownProblem.add(btn);
+    });
+  }
+
+  popStar(x, y) {
+    const star = this.add.text(x, y - 40, '⭐', { fontSize: '40px' }).setOrigin(0.5);
+    this.tweens.add({
+      targets: star, y: y - 120, alpha: 0, scale: 2, duration: 900,
+      onComplete: () => star.destroy(),
+    });
+  }
+
+  revealAnswer(p) {
+    const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 200,
+      `The answer is ${p.correct}. Tap it to keep going!`, {
+      fontFamily: 'Fredoka', fontSize: '22px', color: '#ff5a5f',
+      backgroundColor: '#fff7e6', padding: { x: 12, y: 8 },
+    }).setOrigin(0.5).setDepth(2000);
+    this.time.delayedCall(3000, () => hint.destroy());
+  }
+
+  finish() {
+    const state = this.registry.get('gameState');
+    const bonus = 5;
+    const streak = this.firstTryCorrect >= 5 ? 3 : 0;
+    state.money += bonus + streak;
+    this.hud.setMoney(state.money);
+    save({ totalMoney: state.money });
+
+    const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55).setDepth(2000);
+    const card = this.add.graphics().setDepth(2001);
+    card.fillStyle(0xfff7e6, 1);
+    card.fillRoundedRect(GAME_WIDTH / 2 - 320, GAME_HEIGHT / 2 - 180, 640, 360, 24);
+    card.lineStyle(4, 0x3a1f5e, 1);
+    card.strokeRoundedRect(GAME_WIDTH / 2 - 320, GAME_HEIGHT / 2 - 180, 640, 360, 24);
+
+    const txt = `Great work!\n\n${this.firstTryCorrect} out of ${this.problems.length} correct on first try.\n\nStore bonus: +$${bonus}` +
+      (streak ? `\nStreak bonus: +$${streak}` : '') +
+      `\n\nTotal money: $${state.money}`;
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30, txt, {
+      fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
+      align: 'center', lineSpacing: 6,
+    }).setOrigin(0.5).setDepth(2002);
+
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 130, 'Next: moving targets ▶', {
+      width: 380, height: 64, fontSize: 24,
+      color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
+      onClick: () => this.scene.start(SCENE_KEYS.Archery2),
+    }).setDepth(2003);
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "archery-maya",
+  "version": "1.0.0",
+  "description": "Archery Maya — a 2D adventure game for kids",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "vite": "^8.0.13"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pradeep-sankaran-07/archery-maya.git"
+  },
+  "homepage": "https://pradeep-sankaran-07.github.io/archery-maya/",
+  "license": "MIT"
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#7ec8e3" />
+    <title>Archery Maya</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #1a1230;
+        font-family: 'Fredoka', system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #game {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #game canvas {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 28px;
+        letter-spacing: 0.04em;
+        background: linear-gradient(135deg, #1a1230 0%, #3a1f5e 100%);
+        z-index: 10;
+      }
+      #loading.hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Loading Archery Maya…</div>
+    <div id="game"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
