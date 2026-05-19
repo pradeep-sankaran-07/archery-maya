@@ -81,10 +81,9 @@ export const PHYSICS = {
   swimGravity: 60,
   swimSpeed: 180,
   swimAccel: 280,
-  // Archery: arrows arc noticeably. Max range at 45° is v²/g ≈ 1406 px,
-  // enough to reach the farthest target (~1070 px) but only with real aim.
-  arrowSpeed: 750,
-  arrowGravity: 400,
+  // Archery: arrows arc gently. Aim still matters but center hits feel solid.
+  arrowSpeed: 800,
+  arrowGravity: 320,
 };
 
 // Norwegian kroner. Standard short form is "kr".

@@ -418,6 +418,64 @@ export function drawJellyfish(g, cx, cy) {
   }
 }
 
+/**
+ * Kupal — a friendly cartoon dinosaur boss. Drawn facing right.
+ */
+export function drawKupal(g, cx, cy) {
+  // shadow
+  g.fillStyle(PALETTE.shadow, 0.3);
+  g.fillEllipse(cx, cy + 56, 110, 12);
+  // tail (curved, behind body)
+  g.fillStyle(0x4caf50, 1);
+  g.fillTriangle(cx - 60, cy + 10, cx - 96, cy - 18, cx - 58, cy + 36);
+  // body — big round
+  g.fillStyle(0x4caf50, 1);
+  g.fillEllipse(cx, cy + 18, 140, 80);
+  // belly (lighter)
+  g.fillStyle(0xc8e6c9, 1);
+  g.fillEllipse(cx + 8, cy + 30, 90, 40);
+  // back spots (darker)
+  g.fillStyle(0x2e7d32, 1);
+  g.fillCircle(cx - 30, cy + 4, 6);
+  g.fillCircle(cx - 10, cy - 6, 7);
+  g.fillCircle(cx + 14, cy + 2, 6);
+  g.fillCircle(cx + 36, cy - 4, 7);
+  // legs
+  g.fillStyle(0x2e7d32, 1);
+  g.fillRoundedRect(cx - 36, cy + 46, 18, 22, 6);
+  g.fillRoundedRect(cx + 20, cy + 46, 18, 22, 6);
+  // head
+  g.fillStyle(0x4caf50, 1);
+  g.fillCircle(cx + 60, cy - 10, 36);
+  // snout
+  g.fillStyle(0x4caf50, 1);
+  g.fillEllipse(cx + 88, cy + 4, 36, 22);
+  // belly under snout
+  g.fillStyle(0xc8e6c9, 1);
+  g.fillEllipse(cx + 90, cy + 10, 24, 12);
+  // nostril
+  g.fillStyle(0x14131a, 1);
+  g.fillCircle(cx + 98, cy - 2, 2);
+  // eye
+  g.fillStyle(0xffffff, 1);
+  g.fillCircle(cx + 70, cy - 18, 8);
+  g.fillStyle(0x14131a, 1);
+  g.fillCircle(cx + 72, cy - 18, 4);
+  g.fillStyle(0xffffff, 1);
+  g.fillCircle(cx + 73, cy - 19, 1.5);
+  // back spikes (3 small triangles along the spine)
+  g.fillStyle(0x2e7d32, 1);
+  for (let i = 0; i < 4; i++) {
+    const sx = cx - 36 + i * 24;
+    g.fillTriangle(sx - 6, cy - 18, sx + 6, cy - 18, sx, cy - 32);
+  }
+  // smile
+  g.lineStyle(2, 0x14131a, 1);
+  g.beginPath();
+  g.arc(cx + 82, cy + 6, 8, 0.1, Math.PI - 0.1, false);
+  g.strokePath();
+}
+
 export function drawFish(g, cx, cy) {
   const c = 0xffc94a;
   g.fillStyle(c, 1);
@@ -537,6 +595,13 @@ export function generateAllTextures(scene) {
     const g = scene.add.graphics({ x: 0, y: 0 });
     drawFish(g, 24, 16);
     g.generateTexture('fish', 48, 32);
+    g.destroy();
+  }
+  if (!scene.textures.exists('kupal')) {
+    const w = 220, h = 160;
+    const g = scene.add.graphics({ x: 0, y: 0 });
+    drawKupal(g, w / 2, h / 2);
+    g.generateTexture('kupal', w, h);
     g.destroy();
   }
 

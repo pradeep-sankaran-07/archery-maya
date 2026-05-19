@@ -26,20 +26,20 @@ const WORLD_HEIGHT = 11; // tiles
  */
 
 // Designed levels — chunk by chunk
-// LAND_SEGMENT — stair-stepped so every coin and platform is reachable
-// from a single jump (2.7 tiles ≈ 175 px). The "=" stairs ramp up.
+// LAND_SEGMENT — 72 cols, ~3x longer than v2. Stair-stepped so every coin
+// and platform is reachable on a single jump.
 const LAND_SEGMENT = [
-  '........................................',
-  '........................................',
-  '........................................',
-  '........................................',
-  '...............C........................',
-  '..............==..........C.............',
-  '......C......===.........==.....C.......',
-  '.....==.....====...C....===....==.......',
-  '....S......======T.....====.S..===T..P..',
-  '##############################=#########',
-  '########################################',
+  '........................................................................',
+  '........................................................................',
+  '........................................................................',
+  '........................................................................',
+  '...............C....................C..........C..........C............',
+  '..............==.......C............==........==.........==............',
+  '......C......===......==..C........===........===.......===.....C......',
+  '.....==.....====.....===.==.S.....====...S...====......====....==......',
+  '....S......======T..====.===.....======T....=====T...======S..===T..P..',
+  '########################################################################',
+  '########################################################################',
 ];
 
 const WATER_SEGMENT = [
@@ -56,19 +56,21 @@ const WATER_SEGMENT = [
   '########################################',
 ];
 
-// FINAL_SEGMENT — gentle climb up to the flagpole, every step reachable.
+// FINAL_SEGMENT — 72 cols, no death gaps. After the climb you enter the
+// Kupal boss arena. A 4-tile-tall wall (W) blocks the flag until Kupal is
+// defeated; on death the wall blocks fade away and the flag is reachable.
 const FINAL_SEGMENT = [
-  '........................................',
-  '........................................',
-  '........................................',
-  '........................................',
-  '...........C......C........G............',
-  '..........==.....==........|............',
-  '.....C...===....===.......=|=...........',
-  '....==..====...====.......=|=...........',
-  '...===.=====..=====.......=|=...........',
-  '########################################',
-  '########################################',
+  '........................................................................',
+  '........................................................................',
+  '........................................................................',
+  '........................................................................',
+  '...........C......C.....................................G..............',
+  '..........==.....==..............................W......................',
+  '.....C...===....===.....C....C..............C....W......................',
+  '....==..====...====....==...==..........D...==...W......................',
+  '...===.=====..=====...===..===..............===..W......................',
+  '########################################################################',
+  '########################################################################',
 ];
 
 export default class AdventureScene extends Phaser.Scene {
@@ -125,6 +127,9 @@ export default class AdventureScene extends Phaser.Scene {
     this.flagSprite = null;
     this.pipe = null;
     this.goalReached = false;
+    this.bossWall = [];
+    this.kupal = null;
+    this.kupalDefeated = false;
 
     const layout = segment === 'land' ? LAND_SEGMENT
       : segment === 'water' ? WATER_SEGMENT
@@ -175,6 +180,15 @@ export default class AdventureScene extends Phaser.Scene {
           case 'F': this.spawnEnemy(x, y, 'fish'); break;
           case 'P': this.spawnPipe(x, y); break;
           case 'G': this.spawnFlag(c * TILE, r * TILE); break;
+          case 'D': this.spawnEnemy(x, y, 'kupal'); break;
+          case 'W': {
+            // Boss wall: physics block that gets removed when Kupal dies.
+            const block = this.platforms.create(x, y, 'tile_dirt');
+            block.setTint(0x6b3f25);
+            block.refreshBody();
+            this.bossWall.push(block);
+            break;
+          }
           default: break;
         }
       }
@@ -264,6 +278,33 @@ export default class AdventureScene extends Phaser.Scene {
       e.setVelocityX(40 + Math.random() * 30);
       e.baseY = y;
       e.value = 3;
+    } else if (kind === 'kupal') {
+      e.setScale(1.0);
+      e.body.setSize(140, 110, true);
+      e.setVelocityX(-30);
+      e.hp = 10;
+      e.maxHp = 10;
+      // Boss HP bar (created here, follows the boss in update)
+      const bar = this.add.container(0, 0).setDepth(900);
+      const barBg = this.add.graphics();
+      barBg.fillStyle(0x14131a, 0.75);
+      barBg.fillRoundedRect(-66, -8, 132, 16, 8);
+      const barFill = this.add.graphics();
+      const drawFill = (frac) => {
+        barFill.clear();
+        const w = Math.max(0, 124 * frac);
+        barFill.fillStyle(0xff5a5f, 1);
+        barFill.fillRoundedRect(-62, -5, w, 10, 5);
+      };
+      drawFill(1);
+      const label = this.add.text(0, -22, 'KUPAL', {
+        fontFamily: 'Fredoka', fontSize: '12px', fontStyle: '700',
+        color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 3,
+      }).setOrigin(0.5);
+      bar.add([barBg, barFill, label]);
+      e.hpBar = bar;
+      e.drawHpFill = drawFill;
+      this.kupal = e;
     }
     return e;
   }
@@ -343,8 +384,21 @@ export default class AdventureScene extends Phaser.Scene {
         if (e.x < 0) e.setVelocityX(40);
         if (e.x > this.physics.world.bounds.right) e.setVelocityX(-40);
       }
-      // Face direction of travel (skip jellyfish — vertical only)
-      if (e.kind !== 'jellyfish' && Math.abs(e.body.velocity.x) > 1) {
+      if (e.kind === 'kupal') {
+        // Slow patrol; reverse on world bounds or platform edges.
+        if (e.body.blocked.left) e.setVelocityX(30);
+        if (e.body.blocked.right) e.setVelocityX(-30);
+        // Face the player
+        if (this.player) e.setFlipX(this.player.x < e.x);
+        // Move HP bar to follow Kupal
+        if (e.hpBar) {
+          e.hpBar.x = e.x;
+          e.hpBar.y = e.y - 78;
+        }
+      }
+      // Face direction of travel for the simple kinds (skip jellyfish — vertical only;
+      // skip kupal — already handled by player-facing logic above).
+      if (e.kind !== 'jellyfish' && e.kind !== 'kupal' && Math.abs(e.body.velocity.x) > 1) {
         e.setFlipX(e.body.velocity.x < 0);
       }
     });
@@ -427,25 +481,79 @@ export default class AdventureScene extends Phaser.Scene {
 
   arrowHitEnemy(arrow, enemy) {
     if (!enemy.active) return;
-    if (arrow.destroy) arrow.destroy();
+    // Fish are food, not targets. Arrows pass through them.
     if (enemy.kind === 'fish') {
-      // Fish gives money/food
-      const state = this.registry.get('gameState');
-      state.money += enemy.value || 3;
-      this.hud.setMoney(state.money);
-      const t = this.add.text(enemy.x, enemy.y - 20, `+${enemy.value || 3} kr`, {
-        fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '700',
-        color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
-      }).setOrigin(0.5);
-      this.tweens.add({ targets: t, y: t.y - 40, alpha: 0, duration: 700, onComplete: () => t.destroy() });
+      if (arrow.destroy) arrow.destroy();
+      return;
+    }
+    if (arrow.destroy) arrow.destroy();
+    if (enemy.kind === 'kupal') {
+      enemy.hp -= 1;
+      if (enemy.drawHpFill) enemy.drawHpFill(enemy.hp / enemy.maxHp);
+      SFX.hit();
+      // Flash + tiny knockback
+      this.tweens.add({ targets: enemy, alpha: 0.4, duration: 80, yoyo: true });
+      const kb = this.player && this.player.x < enemy.x ? 1 : -1;
+      enemy.setVelocityX(kb * 80);
+      if (enemy.hp <= 0) this.defeatKupal(enemy);
+      return;
     }
     SFX.hit();
     // Death animation
     this.tweens.add({ targets: enemy, alpha: 0, scaleX: 0, scaleY: 0, duration: 200, onComplete: () => enemy.destroy() });
   }
 
+  eatFish(fish) {
+    if (!fish.active) return;
+    const state = this.registry.get('gameState');
+    const value = fish.value || 3;
+    state.money += value;
+    this.hud.setMoney(state.money);
+    SFX.coin();
+    const t = this.add.text(fish.x, fish.y - 20, `Yum! +${value} kr 🐟`, {
+      fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '700',
+      color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
+    }).setOrigin(0.5);
+    this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 900, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: fish, alpha: 0, scaleX: 0, scaleY: 0, duration: 200, onComplete: () => fish.destroy() });
+  }
+
+  defeatKupal(kupal) {
+    this.kupalDefeated = true;
+    SFX.victory();
+    if (kupal.hpBar) {
+      this.tweens.add({ targets: kupal.hpBar, alpha: 0, duration: 300, onComplete: () => kupal.hpBar.destroy() });
+    }
+    this.tweens.add({
+      targets: kupal, alpha: 0, scaleX: 0, scaleY: 0, duration: 400,
+      onComplete: () => kupal.destroy(),
+    });
+    // Drop the wall — fade each block away and disable its body
+    if (this.bossWall && this.bossWall.length) {
+      this.bossWall.forEach((block, i) => {
+        this.tweens.add({
+          targets: block, alpha: 0, scaleX: 0, scaleY: 0,
+          duration: 400, delay: i * 60,
+          onComplete: () => { if (block.body) block.body.enable = false; block.destroy(); },
+        });
+      });
+      this.bossWall = [];
+    }
+    // Banner
+    const banner = this.add.text(GAME_WIDTH / 2, 120, 'Kupal defeated! The flag is yours.', {
+      fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '700',
+      color: '#fff7e6', backgroundColor: '#2e7d32cc', padding: { x: 14, y: 8 },
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1500);
+    this.time.delayedCall(2400, () => this.tweens.add({ targets: banner, alpha: 0, duration: 800, onComplete: () => banner.destroy() }));
+  }
+
   playerHitEnemy(enemy) {
     if (!enemy.active) return;
+    // Fish in the water are food, not enemies — eat them on touch.
+    if (enemy.kind === 'fish' && this.segment === 'water') {
+      this.eatFish(enemy);
+      return;
+    }
     if (this.time.now < this.player.invincibleUntil) return;
     // Snakes can be jumped over: if we're moving downward and above the snake top, just bounce
     if (enemy.kind === 'snake' && this.player.body.velocity.y > 0 && this.player.y < enemy.y - 10) {

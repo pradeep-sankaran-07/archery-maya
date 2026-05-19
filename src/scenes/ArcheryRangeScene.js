@@ -112,13 +112,13 @@ export default class ArcheryRangeScene extends Phaser.Scene {
   }
 
   spawnTargets() {
-    // Smaller targets at widely-spread positions. Each needs a unique aim
-    // angle (different range AND different height). The flatter arc from
-    // v1 is gone — arrows now arc noticeably, so the player has to lead.
-    const TARGET_SCALE = 0.62;
+    // Mid-sized targets at widely-spread positions. Each needs a unique
+    // aim angle (different range AND different height). Arrows arc gently
+    // so aim still matters but center hits feel solid.
+    const TARGET_SCALE = 0.72;
     const positions = this.moving
       ? [
-          { x: 720, y: 290 }, { x: 940, y: 440 }, { x: 1180, y: 240 },
+          { x: 720, y: 320 }, { x: 940, y: 410 }, { x: 1180, y: 290 },
         ]
       : [
           { x: 560, y: 470 }, // closest, low
@@ -162,11 +162,12 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       if (i % 2 === 0) this.aimGraphics.fillStyle(0xffffff, 0.7).fillCircle(px, py, 2);
     }
 
-    // Move moving targets on sine paths
+    // Move moving targets on sine paths — slower + shorter sweep so a kid
+    // can lead and land hits.
     if (this.moving) {
       this.targets.forEach((t, i) => {
         if (!t.active) return;
-        const wave = Math.sin(this.time.now / 600 + t.phase) * 100;
+        const wave = Math.sin(this.time.now / 900 + t.phase) * 60;
         t.sprite.y = t.baseY + wave;
       });
     }
@@ -188,14 +189,15 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       a.y += a.vy * dts;
       a.sprite.setPosition(a.x, a.y);
       a.sprite.setRotation(Math.atan2(a.vy, a.vx));
-      // collide with targets — only the painted face counts. The hit radius
-      // is well inside the outer ring so glancing shots no longer stick.
+      // Collide with targets at just inside the painted white rim so a clean
+      // shot at the face always counts. Anything past the rim still passes
+      // by harmlessly.
       for (const t of this.targets) {
         if (!t.active) continue;
         const dx = a.x - t.sprite.x;
         const dy = a.y - t.sprite.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < t.radius * 0.82) {
+        if (dist < t.radius * 0.92) {
           this.handleHit(a, t, dist);
           break;
         }
@@ -241,16 +243,15 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     arrow.stuckOffsetX = (arrow.x - target.sprite.x) * 0.92;
     arrow.stuckOffsetY = (arrow.y - target.sprite.y) * 0.92;
     arrow.sprite.setPosition(target.sprite.x + arrow.stuckOffsetX, target.sprite.y + arrow.stuckOffsetY);
-    // Score by ring within the painted face. Center = best prize.
-    // (Distances are fractions of the *outer* radius. Hit detection above
-    // already rejects anything past 0.82, so the edge band starts there.)
+    // Score by ring within the painted face. Bands match the visible
+    // target rendering: gold core, then red, then blue, then white outer.
     const r = target.radius;
     let prize = 1;
-    if (dist < r * 0.18) prize = this.moving ? 10 : 6;
-    else if (dist < r * 0.36) prize = this.moving ? 6 : 4;
-    else if (dist < r * 0.58) prize = this.moving ? 4 : 2;
+    if (dist < r * 0.22) prize = this.moving ? 10 : 6;
+    else if (dist < r * 0.42) prize = this.moving ? 6 : 4;
+    else if (dist < r * 0.65) prize = this.moving ? 4 : 2;
     else prize = this.moving ? 2 : 1;
-    if (dist < r * 0.18) SFX.bullseye(); else SFX.hit();
+    if (dist < r * 0.22) SFX.bullseye(); else SFX.hit();
     SFX.coin();
     // Show floating prize text
     const t = this.add.text(target.sprite.x, target.sprite.y - 30, `+${prize} kr`, {

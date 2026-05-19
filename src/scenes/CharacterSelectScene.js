@@ -9,7 +9,7 @@ const GROUPS = ['Kids', 'Grown-ups', 'Pets'];
 // Each "slot" is a fixed-size cell. The portrait scales inside the slot
 // without affecting the name position, so there is never any text overlap.
 const SLOT_W = 110;   // width of one character cell
-const SLOT_H = 150;   // height of one character cell (portrait + name + padding)
+const SLOT_H = 132;   // height of one character cell (portrait + name + padding)
 const PORTRAIT_SIZE = 96; // bounding circle drawn behind the portrait
 
 const GROUP_LAYOUTS = {
@@ -36,10 +36,9 @@ export default class CharacterSelectScene extends Phaser.Scene {
     if (!CHARACTERS.find((c) => c.id === selectedId)) selectedId = CHARACTERS[0].id;
     const slots = new Map();
 
-    // Vertical layout: 3 groups stacked. Each group label + slot row uses
-    // about 175 px (label 28, gap 8, row 150, gap 10). Three groups fit in
-    // the middle of the 720-px scene with room for title + button.
-    let groupY = 80;
+    // Vertical layout: 3 groups stacked, each with generous breathing room
+    // around its label so the label never crowds the cards above.
+    let groupY = 76;
     GROUPS.forEach((group) => {
       const inGroup = CHARACTERS.filter((c) => c.group === group);
       if (!inGroup.length) return;
@@ -53,12 +52,12 @@ export default class CharacterSelectScene extends Phaser.Scene {
         color: '#5a3a8a',
       }).setOrigin(0, 0);
 
-      const rowY = groupY + 40;
+      const rowY = groupY + 50;
       inGroup.forEach((c, idx) => {
         const slotX = startX + idx * lay.slotW;
         const cx = slotX + lay.slotW / 2;
-        const portraitCy = rowY + 50;  // portrait centered
-        const nameCy = rowY + 122;      // FIXED name position — never moves
+        const portraitCy = rowY + 46;  // portrait centered in slot top half
+        const nameCy = rowY + 110;     // FIXED name position — never moves
 
         // Slot card background — makes the cell visually clear
         const slotBg = this.add.graphics();
@@ -110,7 +109,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
         slots.set(c.id, { portrait, nameTxt, drawSlot, layout: lay });
       });
 
-      groupY += 180;
+      groupY += 195;
     });
 
     const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50,

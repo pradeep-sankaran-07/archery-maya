@@ -25,6 +25,10 @@ export default class BowSelectScene extends Phaser.Scene {
     const previewX = 350, previewY = 350;
     this.add.image(previewX, previewY, `char_${char.id}_idle`).setScale(1.6);
     const bowSprite = this.add.image(previewX + 80, previewY, `bow_${bowId}_${arrowId}`).setScale(1.4);
+    // Separate arrow image so the chosen color is clearly visible in the
+    // preview. (The bow texture itself doesn't include the arrow.)
+    const previewArrow = this.add.image(previewX + 120, previewY - 4, `arrow_${arrowId}`).setScale(1.6);
+    previewArrow.setRotation(-0.12); // slight upward angle, nocked feel
     this.add.text(previewX, previewY + 160, char.name, {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700', color: '#3a1f5e',
     }).setOrigin(0.5);
@@ -84,6 +88,7 @@ export default class BowSelectScene extends Phaser.Scene {
         SFX.select();
         arrowButtons.forEach((entry) => entry.draw(entry.id === arrowId));
         bowSprite.setTexture(`bow_${bowId}_${arrowId}`);
+        previewArrow.setTexture(`arrow_${arrowId}`);
       });
       arrowButtons.push({ id: a.id, draw: drawCard });
     });
