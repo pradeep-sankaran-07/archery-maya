@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, BOWS, ARROW_COLORS, PALETTE, PHYSICS } from '../config.js';
 import { createHUD } from '../ui/HUD.js';
+import { makeTouchButton } from '../ui/TouchControls.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
 
@@ -111,12 +112,48 @@ export default class AdventureScene extends Phaser.Scene {
     this.keys.space.on('down', () => this.shootArrow());
     this.keys.up.on('down', () => this.jumpOrSwim());
 
+    // Touch state (parallel to keyboard) for phones/tablets.
+    this.touch = { left: false, right: false, up: false, down: false };
+    if (this.sys.game.device.input.touch) this.buildTouchControls();
+
     // Hint banner
     this.hintTxt = this.add.text(GAME_WIDTH / 2, 70, '← → walk   ↑ jump   space shoot', {
       fontFamily: 'Fredoka', fontSize: '20px', color: '#fff7e6',
       backgroundColor: '#3a1f5ecc', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1500);
     this.time.delayedCall(5000, () => this.tweens.add({ targets: this.hintTxt, alpha: 0, duration: 1000 }));
+  }
+
+  buildTouchControls() {
+    const R = 60;
+    const bottomY = GAME_HEIGHT - R - 20;
+    // Left + Right D-pad on the bottom-left
+    this.touchLeft = makeTouchButton(this, {
+      x: 90, y: bottomY, radius: R, label: '◀', color: 0x3a1f5e, holdable: true,
+    });
+    this.touchRight = makeTouchButton(this, {
+      x: 90 + R * 2 + 16, y: bottomY, radius: R, label: '▶', color: 0x3a1f5e, holdable: true,
+    });
+    // Up / Down for swim + jump on the right
+    this.touchUp = makeTouchButton(this, {
+      x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY - R - 24, radius: R, label: '↑',
+      color: 0x4caf50, holdable: true, onTap: () => this.jumpOrSwim(),
+    });
+    this.touchDown = makeTouchButton(this, {
+      x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY, radius: R, label: '↓',
+      color: 0x3a1f5e, holdable: true,
+    });
+    // Big Shoot button on the bottom-right
+    this.touchShoot = makeTouchButton(this, {
+      x: GAME_WIDTH - 90, y: bottomY, radius: R + 8, label: '🏹',
+      color: 0xff5a5f, holdable: false, onTap: () => this.shootArrow(),
+    });
+    // Jump button also reachable while still holding Right — small dedicated
+    // Jump above the down button. Tap-only.
+    this.touchJump = makeTouchButton(this, {
+      x: GAME_WIDTH - 90, y: bottomY - R - 24, radius: R - 6, label: 'Jump',
+      color: 0x4caf50, holdable: false, onTap: () => this.jumpOrSwim(),
+    });
   }
 
   buildSegment(segment) {
@@ -367,12 +404,23 @@ export default class AdventureScene extends Phaser.Scene {
     const dts = dt / 1000;
     const speed = this.segment === 'water' ? PHYSICS.swimSpeed : PHYSICS.playerSpeed;
 
+    // Sync touch state from the on-screen buttons (no-op on desktop).
+    if (this.touchLeft) this.touch.left = this.touchLeft.isDown();
+    if (this.touchRight) this.touch.right = this.touchRight.isDown();
+    if (this.touchUp) this.touch.up = this.touchUp.isDown();
+    if (this.touchDown) this.touch.down = this.touchDown.isDown();
+
+    const leftDown = this.keys.left.isDown || this.touch.left;
+    const rightDown = this.keys.right.isDown || this.touch.right;
+    const upDown = this.keys.up.isDown || this.touch.up;
+    const downDown = this.keys.down.isDown || this.touch.down;
+
     // Horizontal movement
-    if (this.keys.left.isDown) {
+    if (leftDown) {
       this.player.setVelocityX(-speed);
       this.player.setFlipX(true);
       this.player.facing = 'left';
-    } else if (this.keys.right.isDown) {
+    } else if (rightDown) {
       this.player.setVelocityX(speed);
       this.player.setFlipX(false);
       this.player.facing = 'right';
@@ -381,8 +429,8 @@ export default class AdventureScene extends Phaser.Scene {
     }
     // Vertical swim
     if (this.segment === 'water') {
-      if (this.keys.up.isDown) this.player.setVelocityY(-PHYSICS.swimSpeed);
-      else if (this.keys.down.isDown) this.player.setVelocityY(PHYSICS.swimSpeed);
+      if (upDown) this.player.setVelocityY(-PHYSICS.swimSpeed);
+      else if (downDown) this.player.setVelocityY(PHYSICS.swimSpeed);
       else this.player.setVelocityY(this.player.body.velocity.y * 0.95);
     }
 

@@ -79,6 +79,24 @@ export default class TitleScene extends Phaser.Scene {
         muteBtn.setLabel(m ? '🔇 Muted' : '🔊 Sound');
       },
     });
+
+    // One-shot rotate hint for phones held in portrait. Shown briefly the
+    // first time the player lands on the title in portrait orientation
+    // on a small screen; never repeated in the same session.
+    const isPhonePortrait = window.innerWidth < window.innerHeight && window.innerWidth < 700;
+    const alreadyShown = this.registry.get('rotateHintShown');
+    if (isPhonePortrait && !alreadyShown) {
+      this.registry.set('rotateHintShown', true);
+      const hint = this.add.text(GAME_WIDTH / 2, 110,
+        '📱  Rotate to landscape for a bigger view',
+        {
+          fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600',
+          color: '#fff7e6', backgroundColor: '#3a1f5ee0',
+          padding: { x: 18, y: 10 },
+        }).setOrigin(0.5).setDepth(2500);
+      this.time.delayedCall(5000, () =>
+        this.tweens.add({ targets: hint, alpha: 0, duration: 800, onComplete: () => hint.destroy() }));
+    }
   }
 
   showHelp() {

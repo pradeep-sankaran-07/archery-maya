@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, BOWS, ARROW_COLORS, PALETTE, PHYSICS, CURRENCY } from '../config.js';
 import { createHUD } from '../ui/HUD.js';
 import { makeButton } from '../ui/Button.js';
+import { makeTouchButton } from '../ui/TouchControls.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
 
@@ -102,11 +103,22 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     this.keys.space.on('down', () => this.shoot());
     this.keys.enter.on('down', () => this.shoot());
 
-    // Touch shoot button (small fallback)
+    // Touch controls: Aim Up + Aim Down (hold) and Shoot (tap).
+    this.touch = { up: false, down: false };
     if (this.sys.game.device.input.touch) {
-      makeButton(this, GAME_WIDTH - 100, GAME_HEIGHT - 50, '🏹 Shoot', {
-        width: 160, height: 60, fontSize: 22, color: 0xff5a5f, hoverColor: 0xff8a8a, textColor: '#ffffff',
-        onClick: () => this.shoot(),
+      const R = 60;
+      const bottomY = GAME_HEIGHT - R - 20;
+      this.touchUp = makeTouchButton(this, {
+        x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY - R - 24, radius: R, label: '▲',
+        color: 0x3a1f5e, holdable: true,
+      });
+      this.touchDown = makeTouchButton(this, {
+        x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY, radius: R, label: '▼',
+        color: 0x3a1f5e, holdable: true,
+      });
+      this.touchShoot = makeTouchButton(this, {
+        x: GAME_WIDTH - 90, y: bottomY, radius: R + 8, label: '🏹',
+        color: 0xff5a5f, holdable: false, onTap: () => this.shoot(),
       });
     }
   }
@@ -144,8 +156,13 @@ export default class ArcheryRangeScene extends Phaser.Scene {
 
   update(_t, dt) {
     const dts = dt / 1000;
-    if (this.keys.up.isDown) this.aimAngle = Math.max(-1.2, this.aimAngle - 1.2 * dts);
-    if (this.keys.down.isDown) this.aimAngle = Math.min(0.35, this.aimAngle + 1.2 * dts);
+    // Sync touch state from the on-screen Aim buttons (no-op on desktop).
+    if (this.touchUp) this.touch.up = this.touchUp.isDown();
+    if (this.touchDown) this.touch.down = this.touchDown.isDown();
+    const upDown = this.keys.up.isDown || this.touch.up;
+    const downDown = this.keys.down.isDown || this.touch.down;
+    if (upDown) this.aimAngle = Math.max(-1.2, this.aimAngle - 1.2 * dts);
+    if (downDown) this.aimAngle = Math.min(0.35, this.aimAngle + 1.2 * dts);
     this.bow.setRotation(this.aimAngle);
 
     // Aim preview parabola
