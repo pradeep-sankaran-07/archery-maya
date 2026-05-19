@@ -167,9 +167,9 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     if (downDown) this.aimAngle = Math.min(0.35, this.aimAngle + 1.2 * dts);
     this.bow.setRotation(this.aimAngle);
 
-    // Aim preview parabola
+    // Aim preview parabola — bigger, brighter dots so the arc is readable
+    // even when the game canvas is scaled down on a phone screen.
     this.aimGraphics.clear();
-    this.aimGraphics.lineStyle(2, 0xffffff, 0.6);
     const startX = this.bow.x + Math.cos(this.aimAngle) * 30;
     const startY = this.bow.y + Math.sin(this.aimAngle) * 30;
     const vx = Math.cos(this.aimAngle) * PHYSICS.arrowSpeed;
@@ -179,7 +179,12 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       const px = startX + vx * t;
       const py = startY + vy * t + 0.5 * PHYSICS.arrowGravity * t * t;
       if (px > GAME_WIDTH || py > GAME_HEIGHT - 100) break;
-      if (i % 2 === 0) this.aimGraphics.fillStyle(0xffffff, 0.7).fillCircle(px, py, 2);
+      // Dark outer ring then bright gold center so the dot stays visible
+      // against both the blue sky AND the grass/dirt below.
+      this.aimGraphics.fillStyle(0x14131a, 0.85);
+      this.aimGraphics.fillCircle(px, py, 7);
+      this.aimGraphics.fillStyle(0xffe066, 1);
+      this.aimGraphics.fillCircle(px, py, 4);
     }
 
     // Move moving targets on sine paths — slower + shorter sweep so a kid
