@@ -26,18 +26,19 @@ const WORLD_HEIGHT = 11; // tiles
  */
 
 // Designed levels — chunk by chunk
-// LAND_SEGMENT — 72 cols, ~3x longer than v2. Stair-stepped so every coin
-// and platform is reachable on a single jump.
+// LAND_SEGMENT — 72 cols. Mostly open ground with snakes and tigers in the
+// way, so the player has to jump (snake) or shoot (tiger) to progress.
+// Platforms are sparse so flying over the level isn't an option.
 const LAND_SEGMENT = [
   '........................................................................',
   '........................................................................',
   '........................................................................',
   '........................................................................',
-  '...............C....................C..........C..........C............',
-  '..............==.......C............==........==.........==............',
-  '......C......===......==..C........===........===.......===.....C......',
-  '.....==.....====.....===.==.S.....====...S...====......====....==......',
-  '....S......======T..====.===.....======T....=====T...======S..===T..P..',
+  '........................................................................',
+  '...........C..........................................C.................',
+  '..........==................C......................C.==.................',
+  '...........=.......C.......===....C....C..........==..==................',
+  '......S....=...T..==..S..S..==...===..==..T..S.S..=...==...T..S.....P...',
   '########################################################################',
   '########################################################################',
 ];
@@ -56,19 +57,20 @@ const WATER_SEGMENT = [
   '########################################',
 ];
 
-// FINAL_SEGMENT — 72 cols, no death gaps. After the climb you enter the
-// Kupal boss arena. A 4-tile-tall wall (W) blocks the flag until Kupal is
-// defeated; on death the wall blocks fade away and the flag is reachable.
+// FINAL_SEGMENT — 72 cols, no death gaps. Generous flat runway in the
+// middle so the player can dodge Kupal's fireballs without falling.
+// Kupal sits near the right (col 42); a 4-tile wall (W at col 50) blocks
+// the flag (col 56) until Kupal is defeated. Then the wall fades away.
 const FINAL_SEGMENT = [
   '........................................................................',
   '........................................................................',
   '........................................................................',
   '........................................................................',
-  '...........C......C.....................................G..............',
-  '..........==.....==..............................W......................',
-  '.....C...===....===.....C....C..............C....W......................',
-  '....==..====...====....==...==..........D...==...W......................',
-  '...===.=====..=====...===..===..............===..W......................',
+  '........................................................C...............',
+  '..................................................W.....G...............',
+  '......==..................C.......................W.....................',
+  '......==......................C...................W.....................',
+  '.....====.................................D.......W.....................',
   '########################################################################',
   '########################################################################',
 ];
@@ -481,16 +483,18 @@ export default class AdventureScene extends Phaser.Scene {
   }
 
   biteAttack() {
-    // Benji bites in front — a big chomp box so it's easy to play as the dog.
-    // ~3.5x the old size (140x100) and reaches further forward.
+    // Benji bites in front — a long, thin chomp swipe so it reaches far
+    // without looking like a giant block.
     const dir = this.player.facing === 'left' ? -1 : 1;
-    const biteW = 140, biteH = 100;
-    const bite = this.add.rectangle(this.player.x + dir * 90, this.player.y, biteW, biteH, 0xff5a5f, 0.45).setDepth(100);
-    bite.setStrokeStyle(3, 0xffe066, 0.85);
+    const biteW = 180, biteH = 40;
+    // Anchor at Benji's snout height (slightly below center).
+    const bite = this.add.rectangle(this.player.x + dir * 110, this.player.y + 6, biteW, biteH, 0xff5a5f, 0.45).setDepth(100);
+    bite.setStrokeStyle(3, 0xffe066, 0.9);
     SFX.bark();
     this.physics.add.existing(bite);
     bite.body.setAllowGravity(false);
-    const reach = Math.max(biteW, biteH) * 0.7; // generous so any nearby enemy is hit
+    // Generous reach so any enemy along the bite line gets chomped.
+    const reach = biteW * 0.55;
     this.enemies.children.iterate((e) => {
       if (!e || !e.active) return;
       if (Phaser.Math.Distance.Between(bite.x, bite.y, e.x, e.y) < reach) {
@@ -498,7 +502,7 @@ export default class AdventureScene extends Phaser.Scene {
       }
     });
     // Slight grow-then-fade so it feels like a chomp
-    this.tweens.add({ targets: bite, scaleX: 1.15, scaleY: 1.15, alpha: 0, duration: 200, onComplete: () => bite.destroy() });
+    this.tweens.add({ targets: bite, scaleX: 1.1, alpha: 0, duration: 220, onComplete: () => bite.destroy() });
   }
 
   collectCoin(coin) {

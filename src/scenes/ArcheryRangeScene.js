@@ -136,6 +136,7 @@ export default class ArcheryRangeScene extends Phaser.Scene {
         active: true,
         speed: 60 + i * 40,
         phase: i * 0.6,
+        hitsTaken: 0,
       };
       this.targets.push(target);
     });
@@ -189,15 +190,14 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       a.y += a.vy * dts;
       a.sprite.setPosition(a.x, a.y);
       a.sprite.setRotation(Math.atan2(a.vy, a.vx));
-      // Collide with targets at just inside the painted white rim so a clean
-      // shot at the face always counts. Anything past the rim still passes
-      // by harmlessly.
+      // Collide with targets — anywhere inside the painted circle counts as
+      // a hit (matches what the player sees), anything outside passes by.
       for (const t of this.targets) {
         if (!t.active) continue;
         const dx = a.x - t.sprite.x;
         const dy = a.y - t.sprite.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < t.radius * 0.92) {
+        if (dist < t.radius) {
           this.handleHit(a, t, dist);
           break;
         }
@@ -243,16 +243,22 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     arrow.stuckOffsetX = (arrow.x - target.sprite.x) * 0.92;
     arrow.stuckOffsetY = (arrow.y - target.sprite.y) * 0.92;
     arrow.sprite.setPosition(target.sprite.x + arrow.stuckOffsetX, target.sprite.y + arrow.stuckOffsetY);
-    // Score by ring within the painted face. Bands match the visible
-    // target rendering: gold core, then red, then blue, then white outer.
+    // Score by ring — bands match the ring radii used in drawTarget:
+    //   0..0.18 red core (bullseye), 0.18..0.34 yellow,
+    //   0.34..0.50 red, 0.50..0.66 blue, 0.66..0.82 black, 0.82..1.0 white.
     const r = target.radius;
     let prize = 1;
-    if (dist < r * 0.22) prize = this.moving ? 10 : 6;
-    else if (dist < r * 0.42) prize = this.moving ? 6 : 4;
-    else if (dist < r * 0.65) prize = this.moving ? 4 : 2;
-    else prize = this.moving ? 2 : 1;
-    if (dist < r * 0.22) SFX.bullseye(); else SFX.hit();
+    if (dist < r * 0.18) prize = this.moving ? 10 : 6;
+    else if (dist < r * 0.34) prize = this.moving ? 6 : 4;
+    else if (dist < r * 0.50) prize = this.moving ? 5 : 3;
+    else if (dist < r * 0.66) prize = this.moving ? 3 : 2;
+    else if (dist < r * 0.82) prize = this.moving ? 2 : 1;
+    else prize = this.moving ? 1 : 1;
+    if (dist < r * 0.18) SFX.bullseye(); else SFX.hit();
     SFX.coin();
+    // Track hits — after 3 the target gets knocked over and disappears so
+    // you have to spread shots across the range.
+    target.hitsTaken += 1;
     // Show floating prize text
     const t = this.add.text(target.sprite.x, target.sprite.y - 30, `+${prize} kr`, {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
@@ -267,6 +273,28 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     this.hud.setMoney(state.money);
     // bounce target
     this.tweens.add({ targets: target.sprite, scale: 0.95, duration: 90, yoyo: true });
+    // 3 hits and the target gets knocked over and disappears, taking any
+    // stuck arrows with it. Forces shooting at different targets.
+    if (target.hitsTaken >= 3) this.knockOverTarget(target);
+  }
+
+  knockOverTarget(target) {
+    if (!target.active) return;
+    target.active = false;
+    // Find arrows stuck to this target and fade them out alongside the target
+    const stuckArrows = this.activeArrows.filter((a) => a.stuckTo === target);
+    this.tweens.add({
+      targets: [target.sprite, ...stuckArrows.map((a) => a.sprite)],
+      alpha: 0,
+      angle: 70,
+      y: target.sprite.y + 30,
+      duration: 500,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        target.sprite.destroy();
+        stuckArrows.forEach((a) => a.sprite.destroy());
+      },
+    });
   }
 
   finishRound() {

@@ -141,50 +141,53 @@ export function drawCharacter(g, cx, cy, character, opts = {}) {
 }
 
 function drawDog(g, cx, cy, character, size, facing, pose) {
-  // Use a compact scale that fits within the parent frame width (sprite is
-  // 96 wide; portrait is 160 wide). All extensions kept within ±0.45 * s of cx.
-  const s = size * 0.65;
-  const footY = cy + s * 0.42;
+  // The dog's footY is tied to the same ground-line that drawCharacter uses
+  // for humans (cy + size*0.5), so Benji's feet land on the platform top
+  // just like every other character.
+  const footY = cy + size * 0.5;
+  // s controls horizontal/body proportions; keep it small enough that the
+  // dog (snout + tail) fits inside a 96-wide sprite frame.
+  const s = size * 0.62;
   const dir = facing === 'left' ? -1 : 1;
   // shadow
   g.fillStyle(PALETTE.shadow, 0.25);
-  g.fillEllipse(cx, footY + 4, s * 0.7, 6);
-  // body (oval) — slightly shorter so the head fits inside the frame
+  g.fillEllipse(cx, footY + 2, s * 0.7, 6);
+  // body (oval)
   g.fillStyle(character.body, 1);
-  g.fillEllipse(cx - dir * s * 0.08, footY - s * 0.22, s * 0.6, s * 0.34);
-  // head — pulled in closer to body so the snout stays inside the frame
+  g.fillEllipse(cx - dir * s * 0.05, footY - s * 0.20, s * 0.62, s * 0.30);
+  // head — pulled in close so the snout stays inside the frame
   const headCx = cx + dir * s * 0.25;
-  const headCy = footY - s * 0.38;
+  const headCy = footY - s * 0.34;
   g.fillCircle(headCx, headCy, s * 0.16);
   // floppy ear (back side)
   g.fillStyle(character.accent, 1);
-  g.fillEllipse(headCx - dir * s * 0.07, headCy - s * 0.06, s * 0.09, s * 0.16);
+  g.fillEllipse(headCx - dir * s * 0.07, headCy - s * 0.05, s * 0.09, s * 0.16);
   // snout
   g.fillStyle(character.accent, 1);
   g.fillEllipse(headCx + dir * s * 0.10, headCy + s * 0.05, s * 0.11, s * 0.08);
   // eye
   g.fillStyle(PALETTE.white, 1);
-  g.fillCircle(headCx + dir * s * 0.04, headCy - s * 0.04, s * 0.03);
+  g.fillCircle(headCx + dir * s * 0.04, headCy - s * 0.04, s * 0.032);
   g.fillStyle(PALETTE.black, 1);
   g.fillCircle(headCx + dir * s * 0.05, headCy - s * 0.04, s * 0.018);
-  // nose tip (clamped inside the frame because snout is closer now)
+  // nose tip
   g.fillStyle(PALETTE.black, 1);
   g.fillCircle(headCx + dir * s * 0.15, headCy + s * 0.04, s * 0.026);
-  // mouth (small line)
+  // mouth (small smile line)
   g.lineStyle(1.5, PALETTE.black, 1);
   g.lineBetween(headCx + dir * s * 0.08, headCy + s * 0.10, headCx + dir * s * 0.15, headCy + s * 0.09);
-  // legs
+  // legs — short, ending right at footY so they sit on the ground
   g.fillStyle(character.body, 1);
   for (let i = 0; i < 4; i++) {
     const lx = cx - s * 0.22 + i * s * 0.14;
-    g.fillRect(lx - 3, footY - s * 0.12, 6, s * 0.12);
+    g.fillRect(lx - 3, footY - s * 0.14, 6, s * 0.14);
   }
   // tail (small curl, well inside the frame)
   g.fillStyle(character.body, 1);
   g.fillTriangle(
-    cx - dir * s * 0.30, footY - s * 0.30,
+    cx - dir * s * 0.30, footY - s * 0.28,
     cx - dir * s * 0.40, footY - s * 0.42,
-    cx - dir * s * 0.30, footY - 0.20 * s,
+    cx - dir * s * 0.30, footY - 0.18 * s,
   );
 }
 
@@ -536,7 +539,12 @@ export function generateAllTextures(scene) {
     g.fillRoundedRect(4, 4, w - 8, h - 8, 14);
     g.lineStyle(3, PALETTE.shadow, 0.3);
     g.strokeRoundedRect(4, 4, w - 8, h - 8, 14);
-    drawCharacter(g, w / 2, h / 2 + 30, c, { size: h * 0.9 });
+    // Pets centre nicely without the human-character downward offset
+    // (humans need feet near the bottom of the card; pets are smaller and
+    // sit more naturally with a centred placement).
+    const cyOffset = c.isPet ? -10 : 30;
+    const portraitSize = c.isPet ? h * 1.05 : h * 0.9;
+    drawCharacter(g, w / 2, h / 2 + cyOffset, c, { size: portraitSize });
     g.generateTexture(key, w, h);
     g.destroy();
   });
