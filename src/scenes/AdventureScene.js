@@ -485,10 +485,13 @@ export default class AdventureScene extends Phaser.Scene {
     if (now - this.player.lastShoot < 250) return;
     this.player.lastShoot = now;
     const dir = this.player.facing === 'left' ? -1 : 1;
-    const arrow = this.activeArrows.create(this.player.x + dir * 40, this.player.y - 10, `arrow_${this.arrowDef.id}`);
-    // Arrows fly straight horizontally — no gravity drop in the platformer
-    // so you don't have to be right next to enemies (or Kupal) to land hits.
+    // Fire from torso height (closer to where ground enemies actually sit)
+    // so the flat-flying arrow lines up with snakes/tigers as well as Kupal.
+    const arrow = this.activeArrows.create(this.player.x + dir * 40, this.player.y + 10, `arrow_${this.arrowDef.id}`);
+    // Arrows fly straight horizontally — no gravity drop in the platformer.
     arrow.body.setAllowGravity(false);
+    // Generous hitbox so any enemy along the flight line gets hit.
+    arrow.body.setSize(60, 40);
     arrow.setVelocityX(dir * 800);
     arrow.setVelocityY(0);
     arrow.setFlipX(dir < 0);
