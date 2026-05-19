@@ -18,36 +18,42 @@ export default class GroceryScene extends Phaser.Scene {
     // Store interior — soft yellow walls
     const bg = this.add.graphics();
     bg.fillStyle(0xfff1d6, 1); bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    bg.fillStyle(0xeacb95, 1); bg.fillRect(0, GAME_HEIGHT - 130, GAME_WIDTH, 130);
+    bg.fillStyle(0xeacb95, 1); bg.fillRect(0, GAME_HEIGHT - 110, GAME_WIDTH, 110);
 
-    // Shelves on top
-    this.add.image(GAME_WIDTH / 2, 230, 'shelf').setScale(1.3, 0.9);
+    // Title — sits below the top-center logo banner
+    this.add.text(GAME_WIDTH / 2, 80, '🛒  Grocery store math!', {
+      fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '700',
+      color: '#3a1f5e',
+    }).setOrigin(0.5);
 
-    // Item icons on shelves (drawn as text)
+    // Single shelf row at top — all 15 items, fixed slot widths so prices
+    // line up cleanly and never overlap the question card below.
+    const shelfTop = 120;
+    const shelfBottom = 240;
+    const shelfStripe = this.add.graphics();
+    shelfStripe.fillStyle(0x8b5a2b, 1);
+    shelfStripe.fillRect(20, shelfBottom - 4, GAME_WIDTH - 40, 6);
+    shelfStripe.fillStyle(0x6b3f25, 1);
+    shelfStripe.fillRect(20, shelfBottom + 2, GAME_WIDTH - 40, 4);
+
+    const SLOT_W = 80;
+    const rowW = ITEMS.length * SLOT_W;
+    const rowStartX = (GAME_WIDTH - rowW) / 2;
     ITEMS.forEach((it, i) => {
-      const row = Math.floor(i / 8);
-      const col = i % 8;
-      const x = 140 + col * 130;
-      const y = 130 + row * 110;
-      this.add.text(x, y, it.emoji, { fontSize: '40px' }).setOrigin(0.5);
-      this.add.text(x, y + 36, `${it.price} kr`, {
-        fontFamily: 'Fredoka', fontSize: '16px', fontStyle: '700',
-        color: '#fff7e6', backgroundColor: '#3a1f5e', padding: { x: 6, y: 2 },
+      const x = rowStartX + i * SLOT_W + SLOT_W / 2;
+      this.add.text(x, shelfTop + 30, it.emoji, { fontSize: '36px' }).setOrigin(0.5);
+      this.add.text(x, shelfTop + 80, `${it.price} kr`, {
+        fontFamily: 'Fredoka', fontSize: '14px', fontStyle: '700',
+        color: '#fff7e6', backgroundColor: '#3a1f5e', padding: { x: 5, y: 2 },
       }).setOrigin(0.5);
     });
 
     // Cashier table
-    const tableY = GAME_HEIGHT - 130;
+    const tableY = GAME_HEIGHT - 110;
     this.add.rectangle(GAME_WIDTH / 2, tableY, GAME_WIDTH, 8, 0x8b5a2b);
 
-    // Title — sits below the top-center logo banner
-    this.add.text(GAME_WIDTH / 2, 86, '🛒  Grocery store math!', {
-      fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
-      color: '#3a1f5e',
-    }).setOrigin(0.5);
-
-    // Character on left
-    this.add.image(110, GAME_HEIGHT - 90, `char_${char.id}_idle`).setScale(1.1);
+    // Character on left of cashier area (below shelves and to the side of card)
+    this.add.image(80, GAME_HEIGHT - 75, `char_${char.id}_idle`).setScale(0.95);
 
     this.hud = createHUD(this, { money: state.money, label: 'Store', character: char });
 
@@ -67,10 +73,15 @@ export default class GroceryScene extends Phaser.Scene {
       return;
     }
     const p = this.problems[this.problemIndex];
-    this.shownProblem = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
+    // Card centered in the clear area between shelf bottom (~240) and
+    // the cashier table top (~610). Card spans y=270 to y=590.
+    const cardTopY = 270;
+    const cardW = 900, cardH = 320;
+    const cardCx = GAME_WIDTH / 2;
+    const cardCy = cardTopY + cardH / 2;
+    this.shownProblem = this.add.container(cardCx, cardCy);
 
     // Card bg
-    const cardW = 880, cardH = 320;
     const card = this.add.graphics();
     card.fillStyle(0xfff7e6, 1);
     card.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 24);
@@ -79,16 +90,16 @@ export default class GroceryScene extends Phaser.Scene {
     this.shownProblem.add(card);
 
     // Question text
-    const qTxt = this.add.text(0, -cardH / 2 + 70, p.prompt, {
+    const qTxt = this.add.text(0, -cardH / 2 + 80, p.prompt, {
       fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
       align: 'center', lineSpacing: 8, wordWrap: { width: cardW - 60 },
     }).setOrigin(0.5);
     this.shownProblem.add(qTxt);
 
     // Progress dot indicator
-    const dots = this.add.container(0, -cardH / 2 + 18);
+    const dots = this.add.container(0, -cardH / 2 + 24);
     for (let i = 0; i < this.problems.length; i++) {
-      const dot = this.add.circle(-((this.problems.length - 1) * 8) + i * 16, 0, 5,
+      const dot = this.add.circle(-((this.problems.length - 1) * 9) + i * 18, 0, 6,
         i < this.problemIndex ? 0x4caf50 : i === this.problemIndex ? 0xff5a5f : 0xbbbbbb);
       dots.add(dot);
     }

@@ -6,11 +6,16 @@ import { save } from '../save.js';
 
 const GROUPS = ['Kids', 'Grown-ups', 'Pets'];
 
-// Per-group layout. Grown-ups has 11 entries so it gets smaller cells.
-const LAYOUTS = {
-  Kids:        { cellW: 110, baseScale: 0.55, hoverScale: 0.60, selectedScale: 0.70, ringR: 34, startX: 60 },
-  'Grown-ups': { cellW: 100, baseScale: 0.50, hoverScale: 0.55, selectedScale: 0.62, ringR: 30, startX: 50 },
-  Pets:        { cellW: 110, baseScale: 0.55, hoverScale: 0.60, selectedScale: 0.70, ringR: 34, startX: 60 },
+// Each "slot" is a fixed-size cell. The portrait scales inside the slot
+// without affecting the name position, so there is never any text overlap.
+const SLOT_W = 110;   // width of one character cell
+const SLOT_H = 150;   // height of one character cell (portrait + name + padding)
+const PORTRAIT_SIZE = 96; // bounding circle drawn behind the portrait
+
+const GROUP_LAYOUTS = {
+  Kids:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72 },
+  'Grown-ups': { slotW: 105, portraitScale: 0.50, selectedScale: 0.58 },
+  Pets:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72 },
 };
 
 export default class CharacterSelectScene extends Phaser.Scene {
@@ -21,68 +26,96 @@ export default class CharacterSelectScene extends Phaser.Scene {
     bg.fillGradientStyle(0xfff7e6, 0xfff7e6, 0xffe6c0, 0xffe6c0, 1);
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    this.add.text(GAME_WIDTH / 2, 36, 'Choose your hero!', {
-      fontFamily: 'Fredoka', fontSize: '38px', fontStyle: '700',
+    this.add.text(GAME_WIDTH / 2, 30, 'Choose your hero!', {
+      fontFamily: 'Fredoka', fontSize: '34px', fontStyle: '700',
       color: '#3a1f5e',
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 0);
 
     const state = this.registry.get('gameState');
     let selectedId = state.character || CHARACTERS[0].id;
     if (!CHARACTERS.find((c) => c.id === selectedId)) selectedId = CHARACTERS[0].id;
-    const portraits = new Map();
+    const slots = new Map();
 
-    // Lay out groups vertically. With 3 groups we have plenty of room.
-    let y = 90;
+    // Vertical layout: 3 groups stacked. Each group label + slot row uses
+    // about 175 px (label 28, gap 8, row 150, gap 10). Three groups fit in
+    // the middle of the 720-px scene with room for title + button.
+    let groupY = 80;
     GROUPS.forEach((group) => {
       const inGroup = CHARACTERS.filter((c) => c.group === group);
       if (!inGroup.length) return;
-      const layout = LAYOUTS[group];
-      this.add.text(layout.startX - 10, y, group, {
+      const lay = GROUP_LAYOUTS[group];
+      const rowW = inGroup.length * lay.slotW;
+      const startX = (GAME_WIDTH - rowW) / 2;
+
+      // Group label, left-aligned with the row
+      this.add.text(startX, groupY, group, {
         fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600',
         color: '#5a3a8a',
-      });
+      }).setOrigin(0, 0);
+
+      const rowY = groupY + 40;
       inGroup.forEach((c, idx) => {
-        const x = layout.startX + idx * layout.cellW + layout.cellW / 2;
-        const yy = y + 70;
-        const portrait = this.add.image(x, yy, `portrait_${c.id}`).setScale(layout.baseScale);
-        portrait.setInteractive({ useHandCursor: true });
-        const nameTxt = this.add.text(x, yy + 50, c.name, {
-          fontFamily: 'Fredoka', fontSize: '15px', color: '#3a1f5e',
+        const slotX = startX + idx * lay.slotW;
+        const cx = slotX + lay.slotW / 2;
+        const portraitCy = rowY + 50;  // portrait centered
+        const nameCy = rowY + 122;      // FIXED name position — never moves
+
+        // Slot card background — makes the cell visually clear
+        const slotBg = this.add.graphics();
+        const drawSlot = (selected) => {
+          slotBg.clear();
+          slotBg.fillStyle(selected ? 0xfff1c5 : 0xffffff, selected ? 1 : 0.75);
+          slotBg.fillRoundedRect(slotX + 6, rowY, lay.slotW - 12, SLOT_H - 5, 12);
+          slotBg.lineStyle(selected ? 4 : 2, selected ? 0xff5a5f : 0x3a1f5e, selected ? 1 : 0.25);
+          slotBg.strokeRoundedRect(slotX + 6, rowY, lay.slotW - 12, SLOT_H - 5, 12);
+        };
+        drawSlot(c.id === selectedId);
+
+        // Portrait — scales only the image itself, NOT the slot
+        const portrait = this.add.image(cx, portraitCy, `portrait_${c.id}`)
+          .setScale(c.id === selectedId ? lay.selectedScale : lay.portraitScale);
+
+        // Name — fixed position; never moves regardless of portrait scale
+        const nameTxt = this.add.text(cx, nameCy, c.name, {
+          fontFamily: 'Fredoka', fontSize: '15px', fontStyle: '600',
+          color: c.id === selectedId ? '#ff5a5f' : '#3a1f5e',
         }).setOrigin(0.5);
-        portrait.on('pointerover', () =>
-          this.tweens.add({ targets: portrait, scale: layout.hoverScale, duration: 120 })
-        );
-        portrait.on('pointerout', () => {
-          if (selectedId !== c.id)
-            this.tweens.add({ targets: portrait, scale: layout.baseScale, duration: 120 });
+
+        // Hit area covers the whole slot so the entire card is clickable
+        const hit = this.add.rectangle(cx, rowY + SLOT_H / 2, lay.slotW - 8, SLOT_H - 6, 0x000000, 0)
+          .setInteractive({ useHandCursor: true });
+
+        hit.on('pointerover', () => {
+          if (selectedId !== c.id) {
+            this.tweens.add({ targets: portrait, scale: lay.portraitScale * 1.05, duration: 100 });
+          }
         });
-        portrait.on('pointerdown', () => {
+        hit.on('pointerout', () => {
+          if (selectedId !== c.id) {
+            this.tweens.add({ targets: portrait, scale: lay.portraitScale, duration: 100 });
+          }
+        });
+        hit.on('pointerdown', () => {
           selectedId = c.id;
           SFX.select();
-          portraits.forEach((p, id) => {
+          slots.forEach((s, id) => {
             const sel = id === selectedId;
-            p.portrait.setScale(sel ? p.layout.selectedScale : p.layout.baseScale);
-            p.ring.setVisible(sel);
-            p.nameTxt.setColor(sel ? '#ff5a5f' : '#3a1f5e');
+            s.drawSlot(sel);
+            s.portrait.setScale(sel ? s.layout.selectedScale : s.layout.portraitScale);
+            s.nameTxt.setColor(sel ? '#ff5a5f' : '#3a1f5e');
           });
           startBtn.setLabel(`Play as ${c.name}  ▶`);
         });
-        const ring = this.add.graphics();
-        ring.lineStyle(3, 0xff5a5f, 1);
-        ring.strokeCircle(x, yy, layout.ringR);
-        ring.setVisible(selectedId === c.id);
-        if (selectedId === c.id) {
-          portrait.setScale(layout.selectedScale);
-          nameTxt.setColor('#ff5a5f');
-        }
-        portraits.set(c.id, { portrait, ring, nameTxt, layout });
+
+        slots.set(c.id, { portrait, nameTxt, drawSlot, layout: lay });
       });
-      y += 150;
+
+      groupY += 180;
     });
 
     const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50,
       `Play as ${CHARACTERS.find((c) => c.id === selectedId).name}  ▶`, {
-      width: 320, height: 64, fontSize: 26,
+      width: 320, height: 60, fontSize: 24,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
         state.character = selectedId;
@@ -91,8 +124,8 @@ export default class CharacterSelectScene extends Phaser.Scene {
       },
     });
 
-    makeButton(this, 100, GAME_HEIGHT - 50, '← Back', {
-      width: 130, height: 50, fontSize: 20,
+    makeButton(this, 90, GAME_HEIGHT - 50, '← Back', {
+      width: 120, height: 48, fontSize: 18,
       color: 0xeeeeee, hoverColor: 0xffffff, textColor: '#3a1f5e',
       onClick: () => this.scene.start(SCENE_KEYS.Title),
     });

@@ -112,25 +112,27 @@ export default class ArcheryRangeScene extends Phaser.Scene {
   }
 
   spawnTargets() {
-    // Targets at widely-spread Y bands so each one needs a unique aim angle
-    // and the closer ones can't shadow the farther ones along a single arc.
+    // Smaller targets at widely-spread positions. Each needs a unique aim
+    // angle (different range AND different height). The flatter arc from
+    // v1 is gone — arrows now arc noticeably, so the player has to lead.
+    const TARGET_SCALE = 0.62;
     const positions = this.moving
       ? [
-          { x: 780, y: 240 }, { x: 980, y: 410 }, { x: 1190, y: 200 },
+          { x: 720, y: 290 }, { x: 940, y: 440 }, { x: 1180, y: 240 },
         ]
       : [
-          { x: 600, y: 460 }, // closest, low
-          { x: 780, y: 220 }, // mid, high
-          { x: 920, y: 380 }, // mid-far, low
-          { x: 1080, y: 180 }, // far, top
-          { x: 1200, y: 320 }, // farthest, mid
+          { x: 560, y: 470 }, // closest, low
+          { x: 740, y: 270 }, // mid, high
+          { x: 900, y: 410 }, // mid-far, low
+          { x: 1060, y: 220 }, // far, top
+          { x: 1200, y: 360 }, // farthest, mid
         ];
     positions.forEach((p, i) => {
-      const img = this.add.image(p.x, p.y, 'target').setScale(0.85);
+      const img = this.add.image(p.x, p.y, 'target').setScale(TARGET_SCALE);
       const target = {
         sprite: img,
         baseX: p.x, baseY: p.y,
-        radius: 56 * 0.85,
+        radius: 56 * TARGET_SCALE,
         active: true,
         speed: 60 + i * 40,
         phase: i * 0.6,
@@ -186,14 +188,14 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       a.y += a.vy * dts;
       a.sprite.setPosition(a.x, a.y);
       a.sprite.setRotation(Math.atan2(a.vy, a.vx));
-      // collide with targets — tighter hit so arrows don't catch on the
-      // transparent rim outside the painted rings
+      // collide with targets — only the painted face counts. The hit radius
+      // is well inside the outer ring so glancing shots no longer stick.
       for (const t of this.targets) {
         if (!t.active) continue;
         const dx = a.x - t.sprite.x;
         const dy = a.y - t.sprite.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < t.radius * 0.95) {
+        if (dist < t.radius * 0.82) {
           this.handleHit(a, t, dist);
           break;
         }
@@ -239,12 +241,14 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     arrow.stuckOffsetX = (arrow.x - target.sprite.x) * 0.92;
     arrow.stuckOffsetY = (arrow.y - target.sprite.y) * 0.92;
     arrow.sprite.setPosition(target.sprite.x + arrow.stuckOffsetX, target.sprite.y + arrow.stuckOffsetY);
-    // Score by ring (tighter rings — bullseye + 3 outer bands + edge)
+    // Score by ring within the painted face. Center = best prize.
+    // (Distances are fractions of the *outer* radius. Hit detection above
+    // already rejects anything past 0.82, so the edge band starts there.)
     const r = target.radius;
     let prize = 1;
-    if (dist < r * 0.18) prize = this.moving ? 8 : 5;
-    else if (dist < r * 0.36) prize = this.moving ? 5 : 3;
-    else if (dist < r * 0.62) prize = this.moving ? 3 : 2;
+    if (dist < r * 0.18) prize = this.moving ? 10 : 6;
+    else if (dist < r * 0.36) prize = this.moving ? 6 : 4;
+    else if (dist < r * 0.58) prize = this.moving ? 4 : 2;
     else prize = this.moving ? 2 : 1;
     if (dist < r * 0.18) SFX.bullseye(); else SFX.hit();
     SFX.coin();
