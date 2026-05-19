@@ -302,6 +302,10 @@ export default class AdventureScene extends Phaser.Scene {
       // feet (around texture y=148) line up with the ground platform top.
       e.body.setSize(140, 110, false);
       e.body.setOffset(40, 38);
+      // Snap Kupal so visible feet rest right on the ground row top.
+      const groundTopY = this.physics.world.bounds.height - 2 * TILE;
+      e.y = groundTopY - 68;
+      e.body.updateFromGameObject();
       e.setVelocityX(-30);
       e.hp = 10;
       e.maxHp = 10;
