@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff5a5f"/>
+      <stop offset="20%" stop-color="#ffa94a"/>
+      <stop offset="40%" stop-color="#ffc94a"/>
+      <stop offset="60%" stop-color="#4caf50"/>
+      <stop offset="80%" stop-color="#4a90e2"/>
+      <stop offset="100%" stop-color="#8b5fbf"/>
+    </linearGradient>
+  </defs>
+  <!-- Target rings (cream backdrop, then concentric colors) -->
+  <circle cx="32" cy="32" r="31" fill="#fff7e6" stroke="#3a1f5e" stroke-width="2"/>
+  <circle cx="32" cy="32" r="26" fill="#14131a"/>
+  <circle cx="32" cy="32" r="22" fill="#4a90e2"/>
+  <circle cx="32" cy="32" r="16" fill="#ff5a5f"/>
+  <circle cx="32" cy="32" r="10" fill="#ffc94a"/>
+  <circle cx="32" cy="32" r="4.5" fill="#ff5a5f"/>
+  <!-- Rainbow arrow piercing the bullseye -->
+  <g transform="rotate(-22 32 32)">
+    <!-- shaft -->
+    <rect x="30" y="30.5" width="32" height="3" fill="url(#rainbow)"/>
+    <!-- arrowhead -->
+    <polygon points="62,32 56,27 56,37" fill="#bcbcbc" stroke="#3a1f5e" stroke-width="0.5"/>
+    <!-- fletching -->
+    <polygon points="30,32 22,27 24,32" fill="#ffffff" stroke="#3a1f5e" stroke-width="0.5"/>
+    <polygon points="30,32 22,37 24,32" fill="#ffffff" stroke="#3a1f5e" stroke-width="0.5"/>
+  </g>
+</svg>
