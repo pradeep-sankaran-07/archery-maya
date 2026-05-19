@@ -106,18 +106,20 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     // Touch controls: Aim Up + Aim Down (hold) and Shoot (tap).
     this.touch = { up: false, down: false };
     if (this.sys.game.device.input.touch) {
-      const R = 60;
-      const bottomY = GAME_HEIGHT - R - 20;
+      const R = 56;
+      const bottomY = GAME_HEIGHT - R - 20;            // Down sits at the bottom
+      const topY = bottomY - R * 2 - 30;                // Up well above Down
+      const colX = GAME_WIDTH - 90 - R * 2 - 24;        // Aim column on the right
       this.touchUp = makeTouchButton(this, {
-        x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY - R - 24, radius: R, label: '▲',
+        x: colX, y: topY, radius: R, label: '▲',
         color: 0x3a1f5e, holdable: true,
       });
       this.touchDown = makeTouchButton(this, {
-        x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY, radius: R, label: '▼',
+        x: colX, y: bottomY, radius: R, label: '▼',
         color: 0x3a1f5e, holdable: true,
       });
       this.touchShoot = makeTouchButton(this, {
-        x: GAME_WIDTH - 90, y: bottomY, radius: R + 8, label: '🏹',
+        x: GAME_WIDTH - 90, y: bottomY - R, radius: R + 12, label: '🏹',
         color: 0xff5a5f, holdable: false, onTap: () => this.shoot(),
       });
     }

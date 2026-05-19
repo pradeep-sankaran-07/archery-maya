@@ -5,21 +5,21 @@ import Phaser from 'phaser';
  * tablets. Buttons live inside the Phaser canvas so they auto-scale and
  * stay positioned correctly under Scale.FIT + CENTER_BOTH.
  *
- * Two flavours via the `holdable` flag:
- *   - holdable: returns { isDown, destroy }; press-and-hold lights up
- *     while the player keeps a finger down.
- *   - tap (default): returns { destroy }; fires `onTap` on each press.
+ * Implementation note: we use a Phaser.GameObjects.Arc as the hit target
+ * (which has built-in circular hit detection that works reliably across
+ * desktop pointer events and iOS / Android touch events). The label text
+ * sits on top of it as a separate, non-interactive game object.
  */
 
 /**
  * @param {Phaser.Scene} scene
  * @param {object} opts
- * @param {number} opts.x  - center x
- * @param {number} opts.y  - center y
+ * @param {number} opts.x       center x in game coords
+ * @param {number} opts.y       center y in game coords
  * @param {number} [opts.radius=64]
  * @param {string} [opts.label='']
  * @param {number} [opts.color=0x3a1f5e]
- * @param {boolean} [opts.holdable=false]
+ * @param {boolean} [opts.holdable=false] hold-style (Left/Right/Aim) vs tap (Jump/Shoot)
  * @param {() => void} [opts.onTap]
  */
 export function makeTouchButton(scene, opts) {
@@ -33,53 +33,47 @@ export function makeTouchButton(scene, opts) {
   } = opts;
 
   const state = { isDown: false };
-  const container = scene.add.container(x, y).setScrollFactor(0).setDepth(2000);
 
-  const bg = scene.add.graphics();
-  const drawBg = (pressed) => {
-    bg.clear();
-    bg.fillStyle(color, pressed ? 0.85 : 0.55);
-    bg.fillCircle(0, 0, radius);
-    bg.lineStyle(4, 0xffffff, pressed ? 0.95 : 0.7);
-    bg.strokeCircle(0, 0, radius);
-  };
-  drawBg(false);
-  container.add(bg);
+  // The Arc IS the interactive surface and gives us reliable circular
+  // hit detection on every platform.
+  const bg = scene.add.circle(x, y, radius, color, 0.55)
+    .setStrokeStyle(4, 0xffffff, 0.7)
+    .setScrollFactor(0)
+    .setDepth(2000)
+    .setInteractive({ useHandCursor: true });
 
-  const text = scene.add.text(0, 0, label, {
+  const text = scene.add.text(x, y, label, {
     fontFamily: 'Fredoka',
     fontSize: `${Math.round(radius * 0.6)}px`,
     fontStyle: '700',
     color: '#ffffff',
-  }).setOrigin(0.5);
-  container.add(text);
-
-  // Interactive zone — a circle hit area sized to the button.
-  container.setSize(radius * 2, radius * 2);
-  container.setInteractive(
-    new Phaser.Geom.Circle(0, 0, radius),
-    Phaser.Geom.Circle.Contains,
-  );
+  })
+    .setOrigin(0.5)
+    .setScrollFactor(0)
+    .setDepth(2001);
 
   const press = () => {
     state.isDown = true;
-    drawBg(true);
+    bg.fillAlpha = 0.85;
+    bg.setStrokeStyle(4, 0xffffff, 0.95);
     if (!holdable && onTap) onTap();
   };
   const release = () => {
     state.isDown = false;
-    drawBg(false);
+    bg.fillAlpha = 0.55;
+    bg.setStrokeStyle(4, 0xffffff, 0.7);
   };
 
-  container.on('pointerdown', press);
-  container.on('pointerup', release);
-  container.on('pointerout', release);
-  container.on('pointerupoutside', release);
-  container.on('pointercancel', release);
+  bg.on('pointerdown', press);
+  bg.on('pointerup', release);
+  bg.on('pointerout', release);
+  bg.on('pointerupoutside', release);
+  bg.on('pointercancel', release);
 
   return {
     isDown: () => state.isDown,
-    container,
-    destroy() { container.destroy(); },
+    bg,
+    text,
+    destroy() { bg.destroy(); text.destroy(); },
   };
 }

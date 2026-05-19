@@ -125,33 +125,35 @@ export default class AdventureScene extends Phaser.Scene {
   }
 
   buildTouchControls() {
-    const R = 60;
+    const R = 56;
     const bottomY = GAME_HEIGHT - R - 20;
+    const topY = bottomY - R * 2 - 30; // upper row, well above bottom row
+
     // Left + Right D-pad on the bottom-left
     this.touchLeft = makeTouchButton(this, {
       x: 90, y: bottomY, radius: R, label: '◀', color: 0x3a1f5e, holdable: true,
     });
     this.touchRight = makeTouchButton(this, {
-      x: 90 + R * 2 + 16, y: bottomY, radius: R, label: '▶', color: 0x3a1f5e, holdable: true,
+      x: 90 + R * 2 + 30, y: bottomY, radius: R, label: '▶', color: 0x3a1f5e, holdable: true,
     });
-    // Up / Down for swim + jump on the right
+    // Up (jump on land / swim up in water) — placed in the upper row
     this.touchUp = makeTouchButton(this, {
-      x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY - R - 24, radius: R, label: '↑',
+      x: GAME_WIDTH - 90 - R * 2 - 24, y: topY, radius: R, label: '↑',
       color: 0x4caf50, holdable: true, onTap: () => this.jumpOrSwim(),
     });
+    // Down (swim down in water) — placed in the bottom row under Up
     this.touchDown = makeTouchButton(this, {
-      x: GAME_WIDTH - 90 - R * 2 - 16, y: bottomY, radius: R, label: '↓',
+      x: GAME_WIDTH - 90 - R * 2 - 24, y: bottomY, radius: R, label: '↓',
       color: 0x3a1f5e, holdable: true,
     });
     // Big Shoot button on the bottom-right
     this.touchShoot = makeTouchButton(this, {
-      x: GAME_WIDTH - 90, y: bottomY, radius: R + 8, label: '🏹',
+      x: GAME_WIDTH - 90, y: bottomY, radius: R + 12, label: '🏹',
       color: 0xff5a5f, holdable: false, onTap: () => this.shootArrow(),
     });
-    // Jump button also reachable while still holding Right — small dedicated
-    // Jump above the down button. Tap-only.
+    // Tap-only Jump above the Shoot button
     this.touchJump = makeTouchButton(this, {
-      x: GAME_WIDTH - 90, y: bottomY - R - 24, radius: R - 6, label: 'Jump',
+      x: GAME_WIDTH - 90, y: topY, radius: R - 4, label: 'Jump',
       color: 0x4caf50, holdable: false, onTap: () => this.jumpOrSwim(),
     });
   }
