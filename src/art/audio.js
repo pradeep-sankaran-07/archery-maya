@@ -63,6 +63,11 @@ export const SFX = {
     [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => blip(f, 0.22, 'triangle', 0.4), i * 130));
   },
   bite() { noiseBurst(0.06, 0.3, 400); },
+  bark() {
+    // "Bow bow!" — two short low descending tones, dog-like
+    blip(180, 0.10, 'sawtooth', 0.35, -80);
+    setTimeout(() => blip(170, 0.12, 'sawtooth', 0.35, -90), 140);
+  },
   swim() { blip(180, 0.18, 'sine', 0.18); },
   splash() { noiseBurst(0.18, 0.3, 500); },
 };

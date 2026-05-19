@@ -141,42 +141,50 @@ export function drawCharacter(g, cx, cy, character, opts = {}) {
 }
 
 function drawDog(g, cx, cy, character, size, facing, pose) {
-  const s = size * 0.9;
-  const footY = cy + s * 0.5;
+  // Use a compact scale that fits within the parent frame width (sprite is
+  // 96 wide; portrait is 160 wide). All extensions kept within ±0.45 * s of cx.
+  const s = size * 0.65;
+  const footY = cy + s * 0.42;
   const dir = facing === 'left' ? -1 : 1;
   // shadow
   g.fillStyle(PALETTE.shadow, 0.25);
-  g.fillEllipse(cx, footY + 4, s * 0.9, 8);
-  // body (oval)
+  g.fillEllipse(cx, footY + 4, s * 0.7, 6);
+  // body (oval) — slightly shorter so the head fits inside the frame
   g.fillStyle(character.body, 1);
-  g.fillEllipse(cx, footY - s * 0.25, s * 0.8, s * 0.4);
-  // head
-  const headCx = cx + dir * s * 0.35;
-  const headCy = footY - s * 0.45;
-  g.fillCircle(headCx, headCy, s * 0.18);
+  g.fillEllipse(cx - dir * s * 0.08, footY - s * 0.22, s * 0.6, s * 0.34);
+  // head — pulled in closer to body so the snout stays inside the frame
+  const headCx = cx + dir * s * 0.25;
+  const headCy = footY - s * 0.38;
+  g.fillCircle(headCx, headCy, s * 0.16);
+  // floppy ear (back side)
+  g.fillStyle(character.accent, 1);
+  g.fillEllipse(headCx - dir * s * 0.07, headCy - s * 0.06, s * 0.09, s * 0.16);
   // snout
   g.fillStyle(character.accent, 1);
-  g.fillEllipse(headCx + dir * s * 0.13, headCy + s * 0.04, s * 0.14, s * 0.10);
-  // ear (floppy)
-  g.fillStyle(character.accent, 1);
-  g.fillEllipse(headCx - dir * s * 0.07, headCy - s * 0.10, s * 0.10, s * 0.18);
+  g.fillEllipse(headCx + dir * s * 0.10, headCy + s * 0.05, s * 0.11, s * 0.08);
   // eye
+  g.fillStyle(PALETTE.white, 1);
+  g.fillCircle(headCx + dir * s * 0.04, headCy - s * 0.04, s * 0.03);
   g.fillStyle(PALETTE.black, 1);
-  g.fillCircle(headCx + dir * s * 0.05, headCy - s * 0.02, s * 0.025);
-  // nose
-  g.fillCircle(headCx + dir * s * 0.20, headCy + s * 0.02, s * 0.03);
+  g.fillCircle(headCx + dir * s * 0.05, headCy - s * 0.04, s * 0.018);
+  // nose tip (clamped inside the frame because snout is closer now)
+  g.fillStyle(PALETTE.black, 1);
+  g.fillCircle(headCx + dir * s * 0.15, headCy + s * 0.04, s * 0.026);
+  // mouth (small line)
+  g.lineStyle(1.5, PALETTE.black, 1);
+  g.lineBetween(headCx + dir * s * 0.08, headCy + s * 0.10, headCx + dir * s * 0.15, headCy + s * 0.09);
   // legs
   g.fillStyle(character.body, 1);
   for (let i = 0; i < 4; i++) {
-    const lx = cx - s * 0.30 + i * s * 0.20;
-    g.fillRect(lx - 4, footY - s * 0.15, 8, s * 0.15);
+    const lx = cx - s * 0.22 + i * s * 0.14;
+    g.fillRect(lx - 3, footY - s * 0.12, 6, s * 0.12);
   }
-  // tail
+  // tail (small curl, well inside the frame)
   g.fillStyle(character.body, 1);
   g.fillTriangle(
-    cx - dir * s * 0.40, footY - s * 0.35,
-    cx - dir * s * 0.55, footY - s * 0.55,
-    cx - dir * s * 0.40, footY - s * 0.22,
+    cx - dir * s * 0.30, footY - s * 0.30,
+    cx - dir * s * 0.40, footY - s * 0.42,
+    cx - dir * s * 0.30, footY - 0.20 * s,
   );
 }
 
@@ -602,6 +610,21 @@ export function generateAllTextures(scene) {
     const g = scene.add.graphics({ x: 0, y: 0 });
     drawKupal(g, w / 2, h / 2);
     g.generateTexture('kupal', w, h);
+    g.destroy();
+  }
+  if (!scene.textures.exists('fireball')) {
+    const w = 36, h = 36;
+    const g = scene.add.graphics({ x: 0, y: 0 });
+    // Outer flame (orange)
+    g.fillStyle(0xff8a3c, 1); g.fillCircle(w / 2, h / 2, 16);
+    // Mid (yellow)
+    g.fillStyle(0xffc94a, 1); g.fillCircle(w / 2, h / 2, 11);
+    // Hot core (white)
+    g.fillStyle(0xfff7e6, 1); g.fillCircle(w / 2 - 1, h / 2 - 1, 5);
+    // little tongues of flame on the leading edge
+    g.fillStyle(0xff5a5f, 1);
+    g.fillTriangle(w / 2 + 14, h / 2 - 6, w / 2 + 20, h / 2, w / 2 + 14, h / 2 + 6);
+    g.generateTexture('fireball', w, h);
     g.destroy();
   }
 

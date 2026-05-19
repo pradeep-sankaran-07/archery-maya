@@ -130,6 +130,8 @@ export default class AdventureScene extends Phaser.Scene {
     this.bossWall = [];
     this.kupal = null;
     this.kupalDefeated = false;
+    this.fireballs = this.physics.add.group({ allowGravity: false });
+    this.bossArenaReached = false;
 
     const layout = segment === 'land' ? LAND_SEGMENT
       : segment === 'water' ? WATER_SEGMENT
@@ -211,6 +213,10 @@ export default class AdventureScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.playerHitEnemy(e));
     this.physics.add.overlap(this.activeArrows, this.enemies, (arrow, e) => this.arrowHitEnemy(arrow, e));
     this.physics.add.collider(this.activeArrows, this.platforms, (arrow) => arrow.destroy());
+    // Fireballs: hurt player on contact (always damaging — they bypass i-frames
+    // only via the standard takeDamage path), die on platforms.
+    this.physics.add.overlap(this.player, this.fireballs, (_p, fb) => this.hitByFireball(fb));
+    this.physics.add.collider(this.fireballs, this.platforms, (fb) => fb.destroy());
 
     // Camera follow
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -284,6 +290,8 @@ export default class AdventureScene extends Phaser.Scene {
       e.setVelocityX(-30);
       e.hp = 10;
       e.maxHp = 10;
+      e.nextFireballAt = (this.time?.now ?? 0) + 2500; // ~2.5 s warm-up
+      e.fireballInterval = 3500; // slow, kid-friendly cadence
       // Boss HP bar (created here, follows the boss in update)
       const bar = this.add.container(0, 0).setDepth(900);
       const barBg = this.add.graphics();
@@ -395,6 +403,11 @@ export default class AdventureScene extends Phaser.Scene {
           e.hpBar.x = e.x;
           e.hpBar.y = e.y - 78;
         }
+        // Fire a slow Mario-style fireball periodically. Player can jump over.
+        if (this.time.now >= (e.nextFireballAt || 0)) {
+          e.nextFireballAt = this.time.now + e.fireballInterval;
+          this.spawnFireball(e);
+        }
       }
       // Face direction of travel for the simple kinds (skip jellyfish — vertical only;
       // skip kupal — already handled by player-facing logic above).
@@ -407,6 +420,19 @@ export default class AdventureScene extends Phaser.Scene {
     if (this.pipe && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.pipe.x, this.pipe.y) < 50) {
       if (this.keys.down.isDown || this.keys.up.isDown || true /* auto-enter */) {
         this.advanceSegment();
+      }
+    }
+
+    // Boss arena checkpoint — when player crosses into the arena, save a
+    // checkpoint so a death respawns near Kupal rather than back at the
+    // start of the segment.
+    if (this.segment === 'final' && this.kupal && !this.bossArenaReached) {
+      // Trigger 10 tiles in front of Kupal so it sets right as you arrive
+      if (this.player.x > this.kupal.x - 10 * TILE) {
+        this.bossArenaReached = true;
+        // Stand the player on a known-safe spawn x — a couple tiles before
+        // the boss so they don't respawn directly on top of Kupal.
+        this.checkpoint = { segment: 'final', x: Math.max(120, this.kupal.x - 5 * TILE), y: 200 };
       }
     }
 
@@ -455,19 +481,24 @@ export default class AdventureScene extends Phaser.Scene {
   }
 
   biteAttack() {
-    // Benji bites in front
+    // Benji bites in front — a big chomp box so it's easy to play as the dog.
+    // ~3.5x the old size (140x100) and reaches further forward.
     const dir = this.player.facing === 'left' ? -1 : 1;
-    const bite = this.add.rectangle(this.player.x + dir * 50, this.player.y, 40, 30, 0xff5a5f, 0.4).setDepth(100);
-    SFX.bite();
+    const biteW = 140, biteH = 100;
+    const bite = this.add.rectangle(this.player.x + dir * 90, this.player.y, biteW, biteH, 0xff5a5f, 0.45).setDepth(100);
+    bite.setStrokeStyle(3, 0xffe066, 0.85);
+    SFX.bark();
     this.physics.add.existing(bite);
     bite.body.setAllowGravity(false);
+    const reach = Math.max(biteW, biteH) * 0.7; // generous so any nearby enemy is hit
     this.enemies.children.iterate((e) => {
       if (!e || !e.active) return;
-      if (Phaser.Math.Distance.Between(bite.x, bite.y, e.x, e.y) < 50) {
+      if (Phaser.Math.Distance.Between(bite.x, bite.y, e.x, e.y) < reach) {
         this.arrowHitEnemy(bite, e);
       }
     });
-    this.time.delayedCall(150, () => bite.destroy());
+    // Slight grow-then-fade so it feels like a chomp
+    this.tweens.add({ targets: bite, scaleX: 1.15, scaleY: 1.15, alpha: 0, duration: 200, onComplete: () => bite.destroy() });
   }
 
   collectCoin(coin) {
@@ -501,6 +532,35 @@ export default class AdventureScene extends Phaser.Scene {
     SFX.hit();
     // Death animation
     this.tweens.add({ targets: enemy, alpha: 0, scaleX: 0, scaleY: 0, duration: 200, onComplete: () => enemy.destroy() });
+  }
+
+  spawnFireball(kupal) {
+    // Direction: toward the player (left if player is left of Kupal)
+    const dir = (this.player && this.player.x < kupal.x) ? -1 : 1;
+    // Spawn from Kupal's mouth area, just above the ground so it rolls
+    // along low — easy to jump over.
+    const startX = kupal.x + dir * 70;
+    const startY = kupal.y + 18;
+    const fb = this.fireballs.create(startX, startY, 'fireball');
+    fb.setScale(1.0).setDepth(50);
+    fb.body.setCircle(14, 4, 4);
+    fb.body.setAllowGravity(false);
+    fb.setVelocityX(dir * 180);
+    fb.setFlipX(dir < 0);
+    // Spin so it looks like a rolling flame
+    this.tweens.add({ targets: fb, angle: dir * 360, duration: 700, repeat: -1 });
+    // Auto-cleanup after 6 s in case it travels off-screen
+    this.time.delayedCall(6000, () => fb && fb.active && fb.destroy());
+  }
+
+  hitByFireball(fb) {
+    if (!fb || !fb.active) return;
+    if (this.time.now < this.player.invincibleUntil) {
+      fb.destroy();
+      return;
+    }
+    fb.destroy();
+    this.takeDamage();
   }
 
   eatFish(fish) {
