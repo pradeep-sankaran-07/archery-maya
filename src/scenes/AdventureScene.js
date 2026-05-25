@@ -8,6 +8,16 @@ import { save } from '../save.js';
 const TILE = 64;
 const WORLD_HEIGHT = 11; // tiles
 
+// Points (kr) awarded per enemy killed. Fish is "eaten" on touch via eatFish
+// and has its own value; Kupal is rewarded once on defeat (not per arrow hit).
+const KILL_REWARDS = {
+  snake: 3,
+  tiger: 8,
+  jellyfish: 6,
+  shark: 10,
+  kupal: 50,
+};
+
 /**
  * Level layout (text-encoded). Each char is one tile.
  *   .  empty (sky / water)
@@ -606,8 +616,26 @@ export default class AdventureScene extends Phaser.Scene {
       return;
     }
     SFX.hit();
+    // Pay out kr for killing snake / tiger / jellyfish / shark.
+    const reward = KILL_REWARDS[enemy.kind] || 0;
+    if (reward) this.payoutKill(enemy.x, enemy.y, reward);
     // Death animation
     this.tweens.add({ targets: enemy, alpha: 0, scaleX: 0, scaleY: 0, duration: 200, onComplete: () => enemy.destroy() });
+  }
+
+  // Award kr for an enemy kill: bump money, float gold "+N kr" text, ka-ching SFX.
+  payoutKill(x, y, amount, label = null) {
+    const state = this.registry.get('gameState');
+    state.money += amount;
+    this.hud.setMoney(state.money);
+    SFX.coin();
+    const txt = label || `+${amount} kr`;
+    const fontSize = amount >= 25 ? '32px' : '22px';
+    const t = this.add.text(x, y - 30, txt, {
+      fontFamily: 'Fredoka', fontSize, fontStyle: '700',
+      color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(800);
+    this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 900, onComplete: () => t.destroy() });
   }
 
   spawnFireball(kupal) {
@@ -657,6 +685,8 @@ export default class AdventureScene extends Phaser.Scene {
   defeatKupal(kupal) {
     this.kupalDefeated = true;
     SFX.victory();
+    // Big bonus payout for defeating the boss
+    this.payoutKill(kupal.x, kupal.y - 20, KILL_REWARDS.kupal, `+${KILL_REWARDS.kupal} kr 🎉`);
     if (kupal.hpBar) {
       this.tweens.add({ targets: kupal.hpBar, alpha: 0, duration: 300, onComplete: () => kupal.hpBar.destroy() });
     }
@@ -693,10 +723,12 @@ export default class AdventureScene extends Phaser.Scene {
     if (this.time.now < this.player.invincibleUntil) return;
     // Snakes can be jumped over: if we're moving downward and above the snake top, just bounce
     if (enemy.kind === 'snake' && this.player.body.velocity.y > 0 && this.player.y < enemy.y - 10) {
-      // Stomp! Snake dies, player bounces
+      // Stomp! Snake dies, player bounces, kr reward
+      const x = enemy.x, y = enemy.y;
       enemy.destroy();
       this.player.setVelocityY(-380);
       SFX.hit();
+      this.payoutKill(x, y, KILL_REWARDS.snake);
       return;
     }
     this.takeDamage();

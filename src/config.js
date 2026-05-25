@@ -123,4 +123,7 @@ export const SCENE_KEYS = {
   Archery2: 'MovingArcheryScene',
   Adventure: 'AdventureScene',
   Victory: 'VictoryScene',
+  Leaderboard: 'LeaderboardScene',
+  GiftShop: 'GiftShopScene',
+  PrizeShowcase: 'PrizeShowcaseScene',
 };

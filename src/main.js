@@ -12,6 +12,9 @@ import GroceryScene from './scenes/GroceryScene.js';
 import MovingArcheryScene from './scenes/MovingArcheryScene.js';
 import AdventureScene from './scenes/AdventureScene.js';
 import VictoryScene from './scenes/VictoryScene.js';
+import LeaderboardScene from './scenes/LeaderboardScene.js';
+import GiftShopScene from './scenes/GiftShopScene.js';
+import PrizeShowcaseScene from './scenes/PrizeShowcaseScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -23,6 +26,8 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  // DOM enabled so LeaderboardScene can overlay an HTML text input.
+  dom: { createContainer: true },
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 900 }, debug: false },
@@ -40,6 +45,9 @@ const config = {
     MovingArcheryScene,
     AdventureScene,
     VictoryScene,
+    LeaderboardScene,
+    GiftShopScene,
+    PrizeShowcaseScene,
   ],
 };
 

@@ -62,12 +62,12 @@ export default class VictoryScene extends Phaser.Scene {
         padding: { x: 24, y: 16 },
       }).setOrigin(0.5);
 
-    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 80, 'Play again  ▶', {
-      width: 300, height: 70, fontSize: 28,
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 80, 'Save your score  ▶', {
+      width: 340, height: 70, fontSize: 26,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
         SFX.select();
-        this.scene.start(SCENE_KEYS.Title);
+        this.scene.start(SCENE_KEYS.Leaderboard);
       },
     });
 
