@@ -9,6 +9,13 @@ import { t } from '../i18n/index.js';
 
 const ARROWS_PER_ROUND = 8;
 
+// The target texture is 140×220 px with the circle rings centred at y=60
+// (not the texture mid-point y=110). With the default origin (0.5, 0.5)
+// sprite.y lands at the texture centre, so the visual circle centre sits
+// (60 − 110) × scale = −36 px above sprite.y.  All hit detection must
+// apply this offset so collisions match what the player sees.
+const TARGET_CIRCLE_OFFSET_Y = (60 - 110) * 0.72; // ≈ −36
+
 export default class ArcheryRangeScene extends Phaser.Scene {
   constructor(key) {
     super(key || SCENE_KEYS.Archery1);
@@ -152,6 +159,9 @@ export default class ArcheryRangeScene extends Phaser.Scene {
         speed: 60 + i * 40,
         phase: i * 0.6,
         hitsTaken: 0,
+        // circleY() returns the world-space Y of the visual ring centre,
+        // which is offset above the sprite centre (see TARGET_CIRCLE_OFFSET_Y).
+        circleY() { return this.sprite.y + TARGET_CIRCLE_OFFSET_Y; },
       };
       this.targets.push(target);
     });
@@ -220,7 +230,7 @@ export default class ArcheryRangeScene extends Phaser.Scene {
       for (const t of this.targets) {
         if (!t.active) continue;
         const dx = a.x - t.sprite.x;
-        const dy = a.y - t.sprite.y;
+        const dy = a.y - t.circleY(); // use visual ring centre, not sprite centre
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < t.radius) {
           this.handleHit(a, t, dist);
@@ -284,13 +294,14 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     // Track hits — after 3 the target gets knocked over and disappears so
     // you have to spread shots across the range.
     target.hitsTaken += 1;
-    // Show floating prize text
-    const t = this.add.text(target.sprite.x, target.sprite.y - 30, `+${prize} kr`, {
+    // Show floating prize text above the visual circle centre
+    const cy = target.circleY();
+    const scoreLabel = this.add.text(target.sprite.x, cy - 30, `+${prize} kr`, {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
       color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
     }).setOrigin(0.5);
-    this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 800, onComplete: () => t.destroy() });
-    this.coinEmitter.emitParticleAt(target.sprite.x, target.sprite.y, 12);
+    this.tweens.add({ targets: scoreLabel, y: scoreLabel.y - 50, alpha: 0, duration: 800, onComplete: () => scoreLabel.destroy() });
+    this.coinEmitter.emitParticleAt(target.sprite.x, cy, 12);
     // Money
     this.roundMoney += prize;
     const state = this.registry.get('gameState');
