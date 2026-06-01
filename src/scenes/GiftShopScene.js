@@ -106,8 +106,13 @@ export default class GiftShopScene extends Phaser.Scene {
       color: '#4caf50',
     }).setOrigin(1, 0).setVisible(false);
     tile.add([bg, emoji, name, price, check]);
-    tile.setSize(w, h);
-    tile.setInteractive({ useHandCursor: true });
+    // Use an explicit hit rectangle in local space (0,0)→(w,h) so the
+    // hit area matches the visual. setSize(w,h) alone creates a *centred*
+    // rectangle at (−w/2,−h/2)→(w/2,h/2) which is offset from the visual.
+    tile.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, w, h),
+      Phaser.Geom.Rectangle.Contains,
+    );
 
     const refresh = () => {
       const owned = state.cart.includes(item.id);
@@ -155,8 +160,10 @@ export default class GiftShopScene extends Phaser.Scene {
   flashNotEnough(tile, item) {
     SFX.wrong();
     // Shake the tile briefly
+    const ox = tile.x;
     this.tweens.add({
-      targets: tile, x: tile.x - 8, duration: 60, yoyo: true, repeat: 2,
+      targets: tile, x: ox - 8, duration: 60, yoyo: true, repeat: 2,
+      onComplete: () => tile.setX(ox),  // guarantee return to origin
     });
     const need = item.price - this.registry.get('gameState').money;
     this.statusText.setText(t('giftShop.notEnough', { name: t(`shop.${item.id}.name`), need }));
