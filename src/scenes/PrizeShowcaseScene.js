@@ -65,8 +65,8 @@ export default class PrizeShowcaseScene extends Phaser.Scene {
         if (!item) return;
         // Spread across a 200° arc centered upward
         const arc = (Math.PI * 200) / 180;
-        const t = cart.length === 1 ? 0 : (i / (cart.length - 1)) - 0.5;
-        const angle = -Math.PI / 2 + t * arc;
+        const pos = cart.length === 1 ? 0 : (i / (cart.length - 1)) - 0.5;
+        const angle = -Math.PI / 2 + pos * arc;
         const ix = cx + Math.cos(angle) * radius;
         const iy = cy + Math.sin(angle) * (radius * 0.85);
         const emoji = this.add.text(ix, iy, item.emoji, { fontSize: '54px' }).setOrigin(0.5);
