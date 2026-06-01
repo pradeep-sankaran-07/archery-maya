@@ -90,21 +90,22 @@ export default class GroceryScene extends Phaser.Scene {
     card.strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 24);
     this.shownProblem.add(card);
 
-    // Question text
-    const qTxt = this.add.text(0, -cardH / 2 + 80, p.prompt, {
-      fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
-      align: 'center', lineSpacing: 8, wordWrap: { width: cardW - 60 },
-    }).setOrigin(0.5);
-    this.shownProblem.add(qTxt);
-
-    // Progress dot indicator
-    const dots = this.add.container(0, -cardH / 2 + 24);
+    // Progress dot indicator — drawn first so it sits below the text in z-order
+    const dots = this.add.container(0, -cardH / 2 + 22);
     for (let i = 0; i < this.problems.length; i++) {
       const dot = this.add.circle(-((this.problems.length - 1) * 9) + i * 18, 0, 6,
         i < this.problemIndex ? 0x4caf50 : i === this.problemIndex ? 0xff5a5f : 0xbbbbbb);
       dots.add(dot);
     }
     this.shownProblem.add(dots);
+
+    // Question text — added after dots so it renders on top; top-anchored so
+    // multi-line prompts grow downward and never overlap the dots row above.
+    const qTxt = this.add.text(0, -cardH / 2 + 46, p.prompt, {
+      fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
+      align: 'center', lineSpacing: 8, wordWrap: { width: cardW - 60 },
+    }).setOrigin(0.5, 0);
+    this.shownProblem.add(qTxt);
 
     // Choices
     const choices = p.choices.map(String);
