@@ -82,8 +82,8 @@ export default class TitleScene extends Phaser.Scene {
     });
 
     // Language toggle button (top-left)
-    makeButton(this, 70, 50, t('lang.toggleLabel'), {
-      width: 120, height: 44, fontSize: 18,
+    makeButton(this, 110, 50, t('lang.toggleLabel'), {
+      width: 210, height: 44, fontSize: 18,
       color: 0x3a1f5e, hoverColor: 0x5a3a8a, textColor: '#fff7e6',
       onClick: () => {
         const next = getCurrentLang() === 'en' ? 'no' : 'en';

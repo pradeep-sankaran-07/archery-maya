@@ -100,7 +100,5 @@ export default class PrizeShowcaseScene extends Phaser.Scene {
         this.scene.start(SCENE_KEYS.Title);
       },
     });
-
-    SFX.victory();
   }
 }

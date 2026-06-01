@@ -258,7 +258,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'skip5', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'skip5', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const start = ri(rng, 2, 8) * 5;
     const ans = start + 5;
     return {
@@ -268,7 +268,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'skip10', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'skip10', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const start = ri(rng, 2, 7) * 10;
     const ans = start + 10;
     return {
@@ -290,7 +290,7 @@ const TEMPLATES = [
   } },
 
   // ─── Place value ───────────────────────────────────────────────────────────
-  { id: 'tens_in', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'tens_in', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const tens = ri(rng, 2, 9);
     const ones = ri(rng, 1, 9);
     const n = tens * 10 + ones;
@@ -301,7 +301,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'ones_in', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'ones_in', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const tens = ri(rng, 1, 9);
     const ones = ri(rng, 1, 9);
     const n = tens * 10 + ones;
@@ -697,7 +697,7 @@ const TEMPLATES = [
   } },
 
   // ─── Counting on / counting back ───────────────────────────────────────────
-  { id: 'count_on', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'count_on', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const start = ri(rng, 10, 25);
     const step = ri(rng, 3, 6);
     const ans = start + step;
@@ -710,7 +710,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'count_back', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'count_back', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const start = ri(rng, 14, 28);
     const step = ri(rng, 3, 6);
     const ans = start - step;
@@ -810,7 +810,7 @@ const TEMPLATES = [
   } },
 
   // ─── Time / units (simple counting framing) ────────────────────────────────
-  { id: 'time_min_in_hr', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'time_min_in_hr', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     return {
       prompt: lang === 'no' ? `Hvor mange minutter er det i 1 time?` : `How many minutes are in 1 hour?`,
       correct: 60,
@@ -848,7 +848,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'time_hours_day', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'time_hours_day', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     return {
       prompt: lang === 'no' ? `Hvor mange timer er det i 1 dag?` : `How many hours are in 1 day?`,
       correct: 24,
@@ -858,7 +858,7 @@ const TEMPLATES = [
   } },
 
   // ─── Number neighbors / "next" ─────────────────────────────────────────────
-  { id: 'next_number', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'next_number', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const n = ri(rng, 18, 88);
     return {
       prompt: lang === 'no' ? `Hvilket tall kommer rett etter ${n}?` : `What number comes right after ${n}?`,
@@ -867,7 +867,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'prev_number', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'prev_number', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const n = ri(rng, 19, 90);
     return {
       prompt: lang === 'no' ? `Hvilket tall kommer rett før ${n}?` : `What number comes right before ${n}?`,
@@ -876,7 +876,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: 'between', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'between', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const a = ri(rng, 10, 80);
     return {
       prompt: lang === 'no' ? `Hvilket tall er mellom ${a} og ${a + 2}?` : `What number comes between ${a} and ${a + 2}?`,
@@ -1088,7 +1088,7 @@ const TEMPLATES = [
   } },
 
   // ─── Quick add/sub fluency (1-digit, hard tier) ───────────────────────────
-  { id: '1d_sum_pair', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: '1d_sum_pair', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const a = ri(rng, 4, 9), b = ri(rng, 4, 9);
     const ans = a + b;
     return {
@@ -1098,7 +1098,7 @@ const TEMPLATES = [
       type: 'numeric',
     };
   } },
-  { id: '1d_diff_pair', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: '1d_diff_pair', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const a = ri(rng, 8, 18), b = ri(rng, 3, 8);
     const ans = a - b;
     return {
@@ -1696,7 +1696,7 @@ const TEMPLATES = [
     const s = ri(rng, 40, 65);
     return { prompt: lang === 'no' ? `Tell tilbake med 5: ${s}, ${s - 5}, ${s - 10}, ?` : `Counting back by 5s: ${s}, ${s - 5}, ${s - 10}, ?`, correct: s - 15, choices: shuffle(rng, [s - 15, ...distinctDistractors(s - 15, 2)]), type: 'numeric' };
   } },
-  { id: 'skip_back10', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'skip_back10', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     const s = ri(rng, 6, 9) * 10;
     return { prompt: lang === 'no' ? `Tell tilbake med 10: ${s}, ${s - 10}, ${s - 20}, ?` : `Counting back by 10s: ${s}, ${s - 10}, ${s - 20}, ?`, correct: s - 30, choices: shuffle(rng, [s - 30, ...distinctDistractors(s - 30, 2)]), type: 'numeric' };
   } },
@@ -1732,7 +1732,7 @@ const TEMPLATES = [
   { id: 'time_half_hour', difficulty: 2, generate(rng, money = 0, lang = 'en') {
     return { prompt: lang === 'no' ? `Halvtime er hvor mange minutter?` : `Half an hour is how many minutes?`, correct: 30, choices: shuffle(rng, [30, 60, 15]), type: 'numeric' };
   } },
-  { id: 'time_weekend_days', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'time_weekend_days', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     return { prompt: lang === 'no' ? `Hvor mange dager er det i en helg?\n(Lørdag og søndag.)` : `How many days are in a weekend?\n(Saturday and Sunday.)`, correct: 2, choices: shuffle(rng, [2, 5, 7]), type: 'numeric' };
   } },
   { id: 'time_full_year_months', difficulty: 3, generate(rng, money = 0, lang = 'en') {
@@ -1741,7 +1741,7 @@ const TEMPLATES = [
   { id: 'time_quarter_hour', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     return { prompt: lang === 'no' ? `Et kvarter er hvor mange minutter?\n(Et kvarter betyr én av fire like deler.)` : `A quarter of an hour is how many minutes?\n(A quarter means one of four equal parts.)`, correct: 15, choices: shuffle(rng, [15, 25, 30]), type: 'numeric' };
   } },
-  { id: 'time_seconds_in_minute', difficulty: 2, generate(rng, money = 0, lang = 'en') {
+  { id: 'time_seconds_in_minute', difficulty: 3, generate(rng, money = 0, lang = 'en') {
     return { prompt: lang === 'no' ? `Hvor mange sekunder er det i 1 minutt?` : `How many seconds are in 1 minute?`, correct: 60, choices: shuffle(rng, [60, 30, 100]), type: 'numeric' };
   } },
 
@@ -1810,8 +1810,8 @@ export function pickProblems(count, money, seed = Date.now(), lang = 'en') {
     hard:   TEMPLATES.filter((t) => t.difficulty === 3),
     chall:  TEMPLATES.filter((t) => t.difficulty >= 4),
   };
-  // 8 problems: 1 medium, 4 hard, 3 challenge (v7 — harder bias).
-  const plan = ['medium', 'hard', 'hard', 'hard', 'hard', 'chall', 'chall', 'chall'].slice(0, count);
+  // 8 problems: 3 hard + 5 challenge — no easy tier (v8 harder bias).
+  const plan = ['hard', 'hard', 'hard', 'chall', 'chall', 'chall', 'chall', 'chall'].slice(0, count);
   while (plan.length < count) plan.push('hard');
 
   const used = new Set();

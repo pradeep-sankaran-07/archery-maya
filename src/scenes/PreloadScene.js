@@ -31,7 +31,7 @@ export default class PreloadScene extends Phaser.Scene {
       generateAllTextures(this);
       subtitle.setText('Ready!');
       this.time.delayedCall(300, () => {
-        this.scene.start(SCENE_KEYS.LanguageSelect);
+        this.scene.start(SCENE_KEYS.Title);
       });
     });
   }

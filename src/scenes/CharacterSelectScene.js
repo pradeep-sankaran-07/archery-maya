@@ -9,13 +9,17 @@ const GROUPS = ['Kids', 'Grown-ups', 'Pets'];
 
 // Each "slot" is a fixed-size cell. The portrait scales inside the slot
 // without affecting the name position, so there is never any text overlap.
-const SLOT_W = 110;   // width of one character cell
-const SLOT_H = 132;   // height of one character cell (portrait + name + padding)
+const SLOT_W = 110;   // width of one character cell (unused — each group has its own slotW)
+const SLOT_H = 120;   // height of one character cell (portrait + name + padding)
 const PORTRAIT_SIZE = 96; // bounding circle drawn behind the portrait
 
+// Slot widths chosen so every group fits within GAME_WIDTH (1280px):
+//   Kids:      10 × 110 = 1100px ✓
+//   Grown-ups: 13 ×  93 = 1209px ✓
+//   Pets:       1 × 130 =  130px ✓
 const GROUP_LAYOUTS = {
-  Kids:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72 },
-  'Grown-ups': { slotW: 105, portraitScale: 0.50, selectedScale: 0.58 },
+  Kids:        { slotW: 110, portraitScale: 0.58, selectedScale: 0.68 },
+  'Grown-ups': { slotW: 93,  portraitScale: 0.46, selectedScale: 0.54 },
   Pets:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72 },
 };
 
@@ -39,7 +43,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
 
     // Vertical layout: 3 groups stacked, each with generous breathing room
     // around its label so the label never crowds the cards above.
-    let groupY = 76;
+    let groupY = 68;
     GROUPS.forEach((group) => {
       const inGroup = CHARACTERS.filter((c) => c.group === group);
       if (!inGroup.length) return;
@@ -49,16 +53,16 @@ export default class CharacterSelectScene extends Phaser.Scene {
 
       // Group label, left-aligned with the row
       this.add.text(startX, groupY, t(`charSelect.group.${group}`), {
-        fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600',
+        fontFamily: 'Fredoka', fontSize: '20px', fontStyle: '600',
         color: '#5a3a8a',
       }).setOrigin(0, 0);
 
-      const rowY = groupY + 50;
+      const rowY = groupY + 26;
       inGroup.forEach((c, idx) => {
         const slotX = startX + idx * lay.slotW;
         const cx = slotX + lay.slotW / 2;
-        const portraitCy = rowY + 46;  // portrait centered in slot top half
-        const nameCy = rowY + 110;     // FIXED name position — never moves
+        const portraitCy = rowY + 40;  // portrait centered in slot top half
+        const nameCy = rowY + 98;      // FIXED name position — never moves
 
         // Slot card background — makes the cell visually clear
         const slotBg = this.add.graphics();
@@ -110,7 +114,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
         slots.set(c.id, { portrait, nameTxt, drawSlot, layout: lay });
       });
 
-      groupY += 195;
+      groupY += 164;
     });
 
     const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50,

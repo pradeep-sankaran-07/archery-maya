@@ -4,7 +4,7 @@ export default {
   'lang.english': '🇬🇧  English',
   'lang.norsk': '🇳🇴  Norsk',
   'lang.continue': 'Fortsett →',
-  'lang.toggleLabel': 'English',
+  'lang.toggleLabel': 'Switch to English 🇬🇧',
 
   // TitleScene
   'title.gameTitle': 'Archery Maya',

@@ -16,6 +16,8 @@ export default class BootScene extends Phaser.Scene {
       arrow: data.lastArrow,
       money: 0,
       levelScores: {},
+      cart: [],
+      playerName: '',
     });
     setMuted(!!data.muted);
     this.scene.start(SCENE_KEYS.Preload);
