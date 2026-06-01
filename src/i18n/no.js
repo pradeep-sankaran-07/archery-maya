@@ -69,6 +69,7 @@ export default {
 
   // GroceryScene
   'grocery.title': '🛒  Matbutikk-matte!',
+  'grocery.hudLabel': 'Butikk',
   'grocery.yes': '✅ Ja',
   'grocery.no': '❌ Nei',
   'grocery.revealHint': 'Svaret er {{correct}}. Trykk det for å fortsette!',
@@ -97,6 +98,7 @@ export default {
   // AdventureScene
   'adventure.hint': '← → gå   ↑ hopp   mellomrom skyt',
   'adventure.hudLabel': 'Eventyr!',
+  'adventure.jump': 'Hopp',
   'adventure.kupalDefeated': 'Kupal beseiret! Flagget er ditt.',
   'adventure.fishEat': 'Nam! +{{value}} kr 🐟',
 

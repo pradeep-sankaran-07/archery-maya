@@ -47,6 +47,10 @@ export const CHARACTERS = [
   { id: 'tejas', name: 'Tejas', group: 'Kids', body: 0xffc94a, accent: 0x8a6500, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
   { id: 'rhea', name: 'Rhea', group: 'Kids', body: 0xff8c69, accent: 0xb04520, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
   { id: 'dhruv', name: 'Dhruv', group: 'Kids', body: 0x20c8b0, accent: 0x0d7865, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
+  { id: 'hennie', name: 'Hennie', group: 'Kids', body: 0xf6a5c0, accent: 0x9c4368, hair: 0x4a2f1a, isPet: false, isAdult: false, isElder: false },
+  { id: 'mari', name: 'Mari', group: 'Kids', body: 0x9ad6a0, accent: 0x3f7a48, hair: 0x2b1a12, isPet: false, isAdult: false, isElder: false },
+  { id: 'alise', name: 'Alise', group: 'Kids', body: 0xc3a3e0, accent: 0x6a4598, hair: 0x3a1d05, isPet: false, isAdult: false, isElder: false },
+  { id: 'celine', name: 'Celine', group: 'Kids', body: 0xb0c95e, accent: 0x5e7320, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
   // Grown-ups (parents, aunty/uncle, grandparents, periappa/periamma/tito mico all consolidated here)
   { id: 'pradeep', name: 'Pradeep', group: 'Grown-ups', body: 0x4a90e2, accent: 0x14315a, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
   { id: 'karen', name: 'Karen', group: 'Grown-ups', body: 0xff7eb3, accent: 0x6a1e44, hair: 0xb87333, isPet: false, isAdult: true, isElder: false },

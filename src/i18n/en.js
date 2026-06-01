@@ -69,6 +69,7 @@ export default {
 
   // GroceryScene
   'grocery.title': '🛒  Grocery store math!',
+  'grocery.hudLabel': 'Store',
   'grocery.yes': '✅ Yes',
   'grocery.no': '❌ No',
   'grocery.revealHint': 'The answer is {{correct}}. Tap it to keep going!',
@@ -97,6 +98,7 @@ export default {
   // AdventureScene
   'adventure.hint': '← → walk   ↑ jump   space shoot',
   'adventure.hudLabel': 'Adventure!',
+  'adventure.jump': 'Jump',
   'adventure.kupalDefeated': 'Kupal defeated! The flag is yours.',
   'adventure.fishEat': 'Yum! +{{value}} kr 🐟',
 

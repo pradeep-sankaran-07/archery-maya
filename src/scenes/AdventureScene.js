@@ -164,7 +164,7 @@ export default class AdventureScene extends Phaser.Scene {
     });
     // Tap-only Jump above the Shoot button
     this.touchJump = makeTouchButton(this, {
-      x: GAME_WIDTH - 90, y: topY, radius: R - 4, label: 'Jump',
+      x: GAME_WIDTH - 90, y: topY, radius: R - 4, label: t('adventure.jump'),
       color: 0x4caf50, holdable: false, onTap: () => this.jumpOrSwim(),
     });
   }

@@ -14,11 +14,11 @@ const SLOT_H = 120;   // height of one character cell (portrait + name + padding
 const PORTRAIT_SIZE = 96; // bounding circle drawn behind the portrait
 
 // Slot widths chosen so every group fits within GAME_WIDTH (1280px):
-//   Kids:      10 × 110 = 1100px ✓
-//   Grown-ups: 13 ×  93 = 1209px ✓
-//   Pets:       1 × 130 =  130px ✓
+//   Kids:      14 × 88 = 1232px ✓
+//   Grown-ups: 13 × 93 = 1209px ✓
+//   Pets:       1 × 130 = 130px ✓
 const GROUP_LAYOUTS = {
-  Kids:        { slotW: 110, portraitScale: 0.58, selectedScale: 0.68 },
+  Kids:        { slotW: 88,  portraitScale: 0.46, selectedScale: 0.54 },
   'Grown-ups': { slotW: 93,  portraitScale: 0.46, selectedScale: 0.54 },
   Pets:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72 },
 };

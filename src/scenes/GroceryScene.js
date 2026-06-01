@@ -56,7 +56,7 @@ export default class GroceryScene extends Phaser.Scene {
     // Character on left of cashier area (below shelves and to the side of card)
     this.add.image(80, GAME_HEIGHT - 75, `char_${char.id}_idle`).setScale(0.95);
 
-    this.hud = createHUD(this, { money: state.money, label: 'Store', character: char });
+    this.hud = createHUD(this, { money: state.money, label: t('grocery.hudLabel'), character: char });
 
     // Pick 6 random problems
     this.problems = pickProblems(PROBLEMS_PER_PLAY, state.money, Date.now(), getCurrentLang());
