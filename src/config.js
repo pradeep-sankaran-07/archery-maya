@@ -51,6 +51,9 @@ export const CHARACTERS = [
   { id: 'mari', name: 'Mari', group: 'Kids', body: 0x9ad6a0, accent: 0x3f7a48, hair: 0x2b1a12, isPet: false, isAdult: false, isElder: false },
   { id: 'alise', name: 'Alise', group: 'Kids', body: 0xc3a3e0, accent: 0x6a4598, hair: 0x3a1d05, isPet: false, isAdult: false, isElder: false },
   { id: 'celine', name: 'Celine', group: 'Kids', body: 0xb0c95e, accent: 0x5e7320, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
+  { id: 'kristiana', name: 'Kristiana', group: 'Kids', body: 0x7fb3e0, accent: 0x2f5e8a, hair: 0x3a1d05, isPet: false, isAdult: false, isElder: false },
+  { id: 'inger', name: 'Inger', group: 'Kids', body: 0xe0a3b8, accent: 0x8a3a5a, hair: 0x4a2f1a, isPet: false, isAdult: false, isElder: false },
+  { id: 'ida', name: 'Ida', group: 'Kids', body: 0xe8c66a, accent: 0x9c7a20, hair: 0x2b1a12, isPet: false, isAdult: false, isElder: false },
   // Grown-ups (parents, aunty/uncle, grandparents, periappa/periamma/tito mico all consolidated here)
   { id: 'pradeep', name: 'Pradeep', group: 'Grown-ups', body: 0x4a90e2, accent: 0x14315a, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
   { id: 'karen', name: 'Karen', group: 'Grown-ups', body: 0xff7eb3, accent: 0x6a1e44, hair: 0xb87333, isPet: false, isAdult: true, isElder: false },

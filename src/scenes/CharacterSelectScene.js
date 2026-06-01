@@ -9,19 +9,28 @@ const GROUPS = ['Kids', 'Grown-ups', 'Pets'];
 
 // Each "slot" is a fixed-size cell. The portrait scales inside the slot
 // without affecting the name position, so there is never any text overlap.
-const SLOT_W = 110;   // width of one character cell (unused — each group has its own slotW)
-const SLOT_H = 120;   // height of one character cell (portrait + name + padding)
-const PORTRAIT_SIZE = 96; // bounding circle drawn behind the portrait
+const SLOT_H = 112;   // height of one character cell (portrait + name + padding)
+const LABEL_H = 24;   // vertical space the group label consumes
+const ROW_STEP = 116; // vertical distance between stacked rows in a group
+const GROUP_GAP = 12; // gap between one group's last row and the next label
 
-// Slot widths chosen so every group fits within GAME_WIDTH (1280px):
-//   Kids:      14 × 88 = 1232px ✓
+// Slot widths + row counts so every group fits within GAME_WIDTH (1280px):
+//   Kids:      17 over 2 rows (9 + 8) × 105 = 945px / 840px ✓
 //   Grown-ups: 13 × 93 = 1209px ✓
 //   Pets:       1 × 130 = 130px ✓
 const GROUP_LAYOUTS = {
-  Kids:        { slotW: 88,  portraitScale: 0.46, selectedScale: 0.54 },
-  'Grown-ups': { slotW: 93,  portraitScale: 0.46, selectedScale: 0.54 },
-  Pets:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72 },
+  Kids:        { slotW: 105, portraitScale: 0.50, selectedScale: 0.58, rows: 2 },
+  'Grown-ups': { slotW: 93,  portraitScale: 0.46, selectedScale: 0.54, rows: 1 },
+  Pets:        { slotW: 130, portraitScale: 0.62, selectedScale: 0.72, rows: 1 },
 };
+
+// Split a list into `rows` near-even rows (first rows take the extra item).
+function chunkRows(arr, rows) {
+  const perRow = Math.ceil(arr.length / rows);
+  const out = [];
+  for (let i = 0; i < arr.length; i += perRow) out.push(arr.slice(i, i + perRow));
+  return out;
+}
 
 export default class CharacterSelectScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.CharacterSelect); }
@@ -41,80 +50,86 @@ export default class CharacterSelectScene extends Phaser.Scene {
     if (!CHARACTERS.find((c) => c.id === selectedId)) selectedId = CHARACTERS[0].id;
     const slots = new Map();
 
-    // Vertical layout: 3 groups stacked, each with generous breathing room
-    // around its label so the label never crowds the cards above.
-    let groupY = 68;
+    // Vertical layout: 3 groups stacked. Groups with too many characters for
+    // one row (Kids) wrap onto multiple rows so nothing overflows the canvas.
+    let groupY = 70;
     GROUPS.forEach((group) => {
       const inGroup = CHARACTERS.filter((c) => c.group === group);
       if (!inGroup.length) return;
       const lay = GROUP_LAYOUTS[group];
-      const rowW = inGroup.length * lay.slotW;
-      const startX = (GAME_WIDTH - rowW) / 2;
+      const rows = chunkRows(inGroup, lay.rows || 1);
 
-      // Group label, left-aligned with the row
-      this.add.text(startX, groupY, t(`charSelect.group.${group}`), {
+      // Group label, left-aligned with the first (widest) row
+      const firstRowW = rows[0].length * lay.slotW;
+      const labelX = (GAME_WIDTH - firstRowW) / 2;
+      this.add.text(labelX, groupY, t(`charSelect.group.${group}`), {
         fontFamily: 'Fredoka', fontSize: '20px', fontStyle: '600',
         color: '#5a3a8a',
       }).setOrigin(0, 0);
 
-      const rowY = groupY + 26;
-      inGroup.forEach((c, idx) => {
-        const slotX = startX + idx * lay.slotW;
-        const cx = slotX + lay.slotW / 2;
-        const portraitCy = rowY + 40;  // portrait centered in slot top half
-        const nameCy = rowY + 98;      // FIXED name position — never moves
+      rows.forEach((rowChars, rowIdx) => {
+        const rowW = rowChars.length * lay.slotW;
+        const startX = (GAME_WIDTH - rowW) / 2;
+        const rowY = groupY + LABEL_H + rowIdx * ROW_STEP;
 
-        // Slot card background — makes the cell visually clear
-        const slotBg = this.add.graphics();
-        const drawSlot = (selected) => {
-          slotBg.clear();
-          slotBg.fillStyle(selected ? 0xfff1c5 : 0xffffff, selected ? 1 : 0.75);
-          slotBg.fillRoundedRect(slotX + 6, rowY, lay.slotW - 12, SLOT_H - 5, 12);
-          slotBg.lineStyle(selected ? 4 : 2, selected ? 0xff5a5f : 0x3a1f5e, selected ? 1 : 0.25);
-          slotBg.strokeRoundedRect(slotX + 6, rowY, lay.slotW - 12, SLOT_H - 5, 12);
-        };
-        drawSlot(c.id === selectedId);
+        rowChars.forEach((c, idx) => {
+          const slotX = startX + idx * lay.slotW;
+          const cx = slotX + lay.slotW / 2;
+          const portraitCy = rowY + 38;  // portrait centered in slot top half
+          const nameCy = rowY + 90;      // FIXED name position — never moves
 
-        // Portrait — scales only the image itself, NOT the slot
-        const portrait = this.add.image(cx, portraitCy, `portrait_${c.id}`)
-          .setScale(c.id === selectedId ? lay.selectedScale : lay.portraitScale);
+          // Slot card background — makes the cell visually clear
+          const slotBg = this.add.graphics();
+          const drawSlot = (selected) => {
+            slotBg.clear();
+            slotBg.fillStyle(selected ? 0xfff1c5 : 0xffffff, selected ? 1 : 0.75);
+            slotBg.fillRoundedRect(slotX + 5, rowY, lay.slotW - 10, SLOT_H - 5, 12);
+            slotBg.lineStyle(selected ? 4 : 2, selected ? 0xff5a5f : 0x3a1f5e, selected ? 1 : 0.25);
+            slotBg.strokeRoundedRect(slotX + 5, rowY, lay.slotW - 10, SLOT_H - 5, 12);
+          };
+          drawSlot(c.id === selectedId);
 
-        // Name — fixed position; never moves regardless of portrait scale
-        const nameTxt = this.add.text(cx, nameCy, c.name, {
-          fontFamily: 'Fredoka', fontSize: '15px', fontStyle: '600',
-          color: c.id === selectedId ? '#ff5a5f' : '#3a1f5e',
-        }).setOrigin(0.5);
+          // Portrait — scales only the image itself, NOT the slot
+          const portrait = this.add.image(cx, portraitCy, `portrait_${c.id}`)
+            .setScale(c.id === selectedId ? lay.selectedScale : lay.portraitScale);
 
-        // Hit area covers the whole slot so the entire card is clickable
-        const hit = this.add.rectangle(cx, rowY + SLOT_H / 2, lay.slotW - 8, SLOT_H - 6, 0x000000, 0)
-          .setInteractive({ useHandCursor: true });
+          // Name — fixed position; never moves regardless of portrait scale
+          const nameTxt = this.add.text(cx, nameCy, c.name, {
+            fontFamily: 'Fredoka', fontSize: '14px', fontStyle: '600',
+            color: c.id === selectedId ? '#ff5a5f' : '#3a1f5e',
+          }).setOrigin(0.5);
 
-        hit.on('pointerover', () => {
-          if (selectedId !== c.id) {
-            this.tweens.add({ targets: portrait, scale: lay.portraitScale * 1.05, duration: 100 });
-          }
-        });
-        hit.on('pointerout', () => {
-          if (selectedId !== c.id) {
-            this.tweens.add({ targets: portrait, scale: lay.portraitScale, duration: 100 });
-          }
-        });
-        hit.on('pointerdown', () => {
-          selectedId = c.id;
-          SFX.select();
-          slots.forEach((s, id) => {
-            const sel = id === selectedId;
-            s.drawSlot(sel);
-            s.portrait.setScale(sel ? s.layout.selectedScale : s.layout.portraitScale);
-            s.nameTxt.setColor(sel ? '#ff5a5f' : '#3a1f5e');
+          // Hit area covers the whole slot so the entire card is clickable
+          const hit = this.add.rectangle(cx, rowY + SLOT_H / 2, lay.slotW - 8, SLOT_H - 6, 0x000000, 0)
+            .setInteractive({ useHandCursor: true });
+
+          hit.on('pointerover', () => {
+            if (selectedId !== c.id) {
+              this.tweens.add({ targets: portrait, scale: lay.portraitScale * 1.05, duration: 100 });
+            }
           });
-          startBtn.setLabel(t('charSelect.playAs', { name: c.name }));
-        });
+          hit.on('pointerout', () => {
+            if (selectedId !== c.id) {
+              this.tweens.add({ targets: portrait, scale: lay.portraitScale, duration: 100 });
+            }
+          });
+          hit.on('pointerdown', () => {
+            selectedId = c.id;
+            SFX.select();
+            slots.forEach((s, id) => {
+              const sel = id === selectedId;
+              s.drawSlot(sel);
+              s.portrait.setScale(sel ? s.layout.selectedScale : s.layout.portraitScale);
+              s.nameTxt.setColor(sel ? '#ff5a5f' : '#3a1f5e');
+            });
+            startBtn.setLabel(t('charSelect.playAs', { name: c.name }));
+          });
 
-        slots.set(c.id, { portrait, nameTxt, drawSlot, layout: lay });
+          slots.set(c.id, { portrait, nameTxt, drawSlot, layout: lay });
+        });
       });
 
-      groupY += 164;
+      groupY += LABEL_H + (rows.length - 1) * ROW_STEP + SLOT_H + GROUP_GAP;
     });
 
     const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50,
