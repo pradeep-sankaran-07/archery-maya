@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
+import { t } from '../i18n/index.js';
 
 export const SHOP_ITEMS = [
   { id: 'bear',       name: 'Stuffed bear',     emoji: '🧸', price: 15 },
@@ -39,11 +40,11 @@ export default class GiftShopScene extends Phaser.Scene {
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // Header
-    this.add.text(GAME_WIDTH / 2, 40, '🛍  Prize Shop', {
+    this.add.text(GAME_WIDTH / 2, 40, t('giftShop.title'), {
       fontFamily: 'Fredoka', fontSize: '36px', fontStyle: '700',
       color: '#3a1f5e',
     }).setOrigin(0.5);
-    this.moneyText = this.add.text(GAME_WIDTH / 2, 80, `You have ${state.money} kr`, {
+    this.moneyText = this.add.text(GAME_WIDTH / 2, 80, t('giftShop.youHave', { money: state.money }), {
       fontFamily: 'Fredoka', fontSize: '24px', fontStyle: '600',
       color: '#ff5a5f',
     }).setOrigin(0.5);
@@ -62,7 +63,7 @@ export default class GiftShopScene extends Phaser.Scene {
 
     // Cart panel on the right
     const cartX = 800;
-    this.add.text(cartX, 120, '🛒  Your cart', {
+    this.add.text(cartX, 120, t('giftShop.cart'), {
       fontFamily: 'Fredoka', fontSize: '24px', fontStyle: '700',
       color: '#3a1f5e',
     });
@@ -70,7 +71,7 @@ export default class GiftShopScene extends Phaser.Scene {
     this.refreshCart();
 
     // Bottom: Done shopping button
-    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50, 'Done shopping  ▶', {
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50, t('giftShop.done'), {
       width: 280, height: 60, fontSize: 24,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
@@ -92,7 +93,7 @@ export default class GiftShopScene extends Phaser.Scene {
     const tile = this.add.container(x, y);
     const bg = this.add.graphics();
     const emoji = this.add.text(w / 2, 38, item.emoji, { fontSize: '44px' }).setOrigin(0.5);
-    const name = this.add.text(w / 2, 78, item.name, {
+    const name = this.add.text(w / 2, 78, t(`shop.${item.id}.name`), {
       fontFamily: 'Fredoka', fontSize: '15px', fontStyle: '600',
       color: '#3a1f5e', align: 'center', wordWrap: { width: w - 12 },
     }).setOrigin(0.5);
@@ -145,7 +146,7 @@ export default class GiftShopScene extends Phaser.Scene {
       cur.money -= item.price;
       cur.cart.push(item.id);
       SFX.coin();
-      this.moneyText.setText(`You have ${cur.money} kr`);
+      this.moneyText.setText(t('giftShop.youHave', { money: cur.money }));
       this.refreshAllTiles();
       this.refreshCart();
     });
@@ -158,7 +159,7 @@ export default class GiftShopScene extends Phaser.Scene {
       targets: tile, x: tile.x - 8, duration: 60, yoyo: true, repeat: 2,
     });
     const need = item.price - this.registry.get('gameState').money;
-    this.statusText.setText(`Not enough kronor for ${item.name} — need ${need} more.`);
+    this.statusText.setText(t('giftShop.notEnough', { name: t(`shop.${item.id}.name`), need }));
     if (this._statusFadeTimer) this._statusFadeTimer.remove(false);
     this._statusFadeTimer = this.time.delayedCall(2200, () => this.statusText.setText(''));
   }
@@ -171,7 +172,7 @@ export default class GiftShopScene extends Phaser.Scene {
     const state = this.registry.get('gameState');
     this.cartContainer.removeAll(true);
     if (!state.cart || state.cart.length === 0) {
-      const empty = this.add.text(0, 0, '(nothing yet)', {
+      const empty = this.add.text(0, 0, t('giftShop.cartEmpty'), {
         fontFamily: 'Fredoka', fontSize: '18px', color: '#5a3a8a',
       });
       this.cartContainer.add(empty);
@@ -182,7 +183,7 @@ export default class GiftShopScene extends Phaser.Scene {
       if (!item) return;
       const y = idx * 38;
       const emoji = this.add.text(0, y, item.emoji, { fontSize: '24px' });
-      const name = this.add.text(36, y + 2, `${item.name}  (${item.price} kr)`, {
+      const name = this.add.text(36, y + 2, `${t(`shop.${item.id}.name`)}  (${item.price} kr)`, {
         fontFamily: 'Fredoka', fontSize: '16px', color: '#3a1f5e',
       });
       // Refund ✕
@@ -195,7 +196,7 @@ export default class GiftShopScene extends Phaser.Scene {
         cur.money += item.price;
         cur.cart.splice(cur.cart.indexOf(id), 1);
         SFX.click();
-        this.moneyText.setText(`You have ${cur.money} kr`);
+        this.moneyText.setText(t('giftShop.youHave', { money: cur.money }));
         this.refreshAllTiles();
         this.refreshCart();
       });

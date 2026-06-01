@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, PALETTE } from '../config.js';
 import { SFX } from '../art/audio.js';
+import { t } from '../i18n/index.js';
 
 export default class HouseScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.House); }
@@ -42,7 +43,7 @@ export default class HouseScene extends Phaser.Scene {
     this.tweens.add({ targets: player, alpha: 1, duration: 400, delay: 600 });
 
     // "Door opens" little hint
-    const hint = this.add.text(GAME_WIDTH / 2, 60, `${char.name} is heading out to the archery range!`, {
+    const hint = this.add.text(GAME_WIDTH / 2, 60, t('house.heading', { name: char.name }), {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '600',
       color: '#3a1f5e', backgroundColor: '#fff7e6cc', padding: { x: 16, y: 8 },
     }).setOrigin(0.5);
@@ -63,7 +64,7 @@ export default class HouseScene extends Phaser.Scene {
     });
 
     // Tap-to-skip
-    const skip = this.add.text(GAME_WIDTH - 24, GAME_HEIGHT - 24, 'press any key to skip', {
+    const skip = this.add.text(GAME_WIDTH - 24, GAME_HEIGHT - 24, t('house.skip'), {
       fontFamily: 'Fredoka', fontSize: '16px', color: '#3a1f5e',
     }).setOrigin(1, 1);
     this.input.keyboard.on('keydown', () => {

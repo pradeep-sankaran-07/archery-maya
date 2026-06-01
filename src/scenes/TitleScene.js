@@ -3,6 +3,7 @@ import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, PALETTE } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX, isMuted, setMuted } from '../art/audio.js';
 import { save } from '../save.js';
+import { t, getCurrentLang, setLanguage } from '../i18n/index.js';
 
 export default class TitleScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.Title); }
@@ -36,7 +37,7 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     // Title
-    const title = this.add.text(GAME_WIDTH / 2, 220, 'Archery Maya', {
+    const title = this.add.text(GAME_WIDTH / 2, 220, t('title.gameTitle'), {
       fontFamily: 'Fredoka',
       fontSize: '96px',
       fontStyle: '700',
@@ -47,14 +48,14 @@ export default class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: title, scale: 1.05, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.text(GAME_WIDTH / 2, 310, 'an adventure for brave kids', {
+    this.add.text(GAME_WIDTH / 2, 310, t('title.subtitle'), {
       fontFamily: 'Fredoka',
       fontSize: '28px',
       color: '#3a1f5e',
     }).setOrigin(0.5);
 
     // Buttons
-    makeButton(this, GAME_WIDTH / 2, 440, '▶  Play', {
+    makeButton(this, GAME_WIDTH / 2, 440, t('title.play'), {
       width: 280, height: 80, fontSize: 36, color: 0x4caf50, hoverColor: 0x6bc06f,
       textColor: '#ffffff',
       onClick: () => {
@@ -63,32 +64,41 @@ export default class TitleScene extends Phaser.Scene {
       },
     });
 
-    makeButton(this, GAME_WIDTH / 2, 540, 'How to play', {
+    makeButton(this, GAME_WIDTH / 2, 540, t('title.howToPlay'), {
       width: 240, height: 60, fontSize: 24, color: 0xffc94a, hoverColor: 0xffd966,
       onClick: () => this.showHelp(),
     });
 
     // Mute button
-    const muteBtn = makeButton(this, GAME_WIDTH - 90, 50, isMuted() ? '🔇 Muted' : '🔊 Sound', {
+    const muteBtn = makeButton(this, GAME_WIDTH - 90, 50, isMuted() ? t('title.muted') : t('title.sound'), {
       width: 150, height: 44, fontSize: 18,
       color: 0xffffff, hoverColor: 0xfff7e6,
       onClick: () => {
         const m = !isMuted();
         setMuted(m);
         save({ muted: m });
-        muteBtn.setLabel(m ? '🔇 Muted' : '🔊 Sound');
+        muteBtn.setLabel(m ? t('title.muted') : t('title.sound'));
       },
     });
 
-    // One-shot rotate hint for phones held in portrait. Shown briefly the
-    // first time the player lands on the title in portrait orientation
-    // on a small screen; never repeated in the same session.
+    // Language toggle button (top-left)
+    makeButton(this, 70, 50, t('lang.toggleLabel'), {
+      width: 120, height: 44, fontSize: 18,
+      color: 0x3a1f5e, hoverColor: 0x5a3a8a, textColor: '#fff7e6',
+      onClick: () => {
+        const next = getCurrentLang() === 'en' ? 'no' : 'en';
+        setLanguage(next);
+        this.scene.restart();
+      },
+    });
+
+    // One-shot rotate hint for phones held in portrait
     const isPhonePortrait = window.innerWidth < window.innerHeight && window.innerWidth < 700;
     const alreadyShown = this.registry.get('rotateHintShown');
     if (isPhonePortrait && !alreadyShown) {
       this.registry.set('rotateHintShown', true);
       const hint = this.add.text(GAME_WIDTH / 2, 110,
-        '📱  Rotate to landscape for a bigger view',
+        t('title.rotateHint'),
         {
           fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600',
           color: '#fff7e6', backgroundColor: '#3a1f5ee0',
@@ -109,19 +119,13 @@ export default class TitleScene extends Phaser.Scene {
     card.strokeRoundedRect(GAME_WIDTH / 2 - 320, GAME_HEIGHT / 2 - 220, 640, 440, 24);
 
     const text = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80,
-      'How to play\n\n' +
-      '← →   walk\n' +
-      '↑       jump (or aim up)\n' +
-      '↓       aim down (or swim down)\n' +
-      'Space  shoot your arrow\n' +
-      'Enter  pick an answer\n\n' +
-      'Have fun! 💖',
+      t('title.helpBody'),
       {
         fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
         align: 'center', lineSpacing: 6,
       }).setOrigin(0.5);
 
-    const close = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150, 'Got it!', {
+    const close = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 150, t('title.gotIt'), {
       width: 180, height: 56, fontSize: 24, color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => { overlay.destroy(); card.destroy(); text.destroy(); close.destroy(); },
     });

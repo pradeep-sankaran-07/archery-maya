@@ -45,6 +45,8 @@ export const CHARACTERS = [
   { id: 'aisha', name: 'Aisha', group: 'Kids', body: 0xff9ec1, accent: 0xb8467a, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
   { id: 'isma', name: 'Isma', group: 'Kids', body: 0x4a90e2, accent: 0x1f4d8a, hair: 0x2b1a12, isPet: false, isAdult: false, isElder: false },
   { id: 'tejas', name: 'Tejas', group: 'Kids', body: 0xffc94a, accent: 0x8a6500, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
+  { id: 'rhea', name: 'Rhea', group: 'Kids', body: 0xff8c69, accent: 0xb04520, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
+  { id: 'dhruv', name: 'Dhruv', group: 'Kids', body: 0x20c8b0, accent: 0x0d7865, hair: 0x1a0e09, isPet: false, isAdult: false, isElder: false },
   // Grown-ups (parents, aunty/uncle, grandparents, periappa/periamma/tito mico all consolidated here)
   { id: 'pradeep', name: 'Pradeep', group: 'Grown-ups', body: 0x4a90e2, accent: 0x14315a, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
   { id: 'karen', name: 'Karen', group: 'Grown-ups', body: 0xff7eb3, accent: 0x6a1e44, hair: 0xb87333, isPet: false, isAdult: true, isElder: false },
@@ -57,6 +59,8 @@ export const CHARACTERS = [
   { id: 'paati', name: 'Paati', group: 'Grown-ups', body: 0xf2c89c, accent: 0x7a3b3b, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
   { id: 'lolo', name: 'Lolo', group: 'Grown-ups', body: 0x9fbfa6, accent: 0x3f6b46, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
   { id: 'lola', name: 'Lola', group: 'Grown-ups', body: 0xe8b7c8, accent: 0x7a3a4a, hair: 0xeeeeee, isPet: false, isAdult: true, isElder: true },
+  { id: 'debajit', name: 'Debajit', group: 'Grown-ups', body: 0xd4a040, accent: 0x7a5a10, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
+  { id: 'krip', name: 'Krip', group: 'Grown-ups', body: 0x5c7a9e, accent: 0x2a4a6a, hair: 0x1a0e09, isPet: false, isAdult: true, isElder: false },
   // Pets
   { id: 'benji', name: 'Benji', group: 'Pets', body: 0xc88a52, accent: 0x6b4520, hair: 0x6b4520, isPet: true, isAdult: false, isElder: false },
 ];
@@ -114,6 +118,7 @@ export const ITEMS = [
 export const SCENE_KEYS = {
   Boot: 'BootScene',
   Preload: 'PreloadScene',
+  LanguageSelect: 'LanguageSelectScene',
   Title: 'TitleScene',
   CharacterSelect: 'CharacterSelectScene',
   BowSelect: 'BowSelectScene',

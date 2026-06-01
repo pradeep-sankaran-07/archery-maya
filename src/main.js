@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, SCENE_KEYS } from './config.js';
+import { init as initI18n } from './i18n/index.js';
 
 import BootScene from './scenes/BootScene.js';
 import PreloadScene from './scenes/PreloadScene.js';
+import LanguageSelectScene from './scenes/LanguageSelectScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import CharacterSelectScene from './scenes/CharacterSelectScene.js';
 import BowSelectScene from './scenes/BowSelectScene.js';
@@ -15,6 +17,8 @@ import VictoryScene from './scenes/VictoryScene.js';
 import LeaderboardScene from './scenes/LeaderboardScene.js';
 import GiftShopScene from './scenes/GiftShopScene.js';
 import PrizeShowcaseScene from './scenes/PrizeShowcaseScene.js';
+
+initI18n();
 
 const config = {
   type: Phaser.AUTO,
@@ -36,6 +40,7 @@ const config = {
   scene: [
     BootScene,
     PreloadScene,
+    LanguageSelectScene,
     TitleScene,
     CharacterSelectScene,
     BowSelectScene,

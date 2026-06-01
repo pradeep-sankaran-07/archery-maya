@@ -5,6 +5,7 @@ import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
 import { pickProblems } from '../math/problems.js';
 import { save } from '../save.js';
+import { t, getCurrentLang } from '../i18n/index.js';
 
 const PROBLEMS_PER_PLAY = 8;
 
@@ -21,7 +22,7 @@ export default class GroceryScene extends Phaser.Scene {
     bg.fillStyle(0xeacb95, 1); bg.fillRect(0, GAME_HEIGHT - 110, GAME_WIDTH, 110);
 
     // Title — sits below the top-center logo banner
-    this.add.text(GAME_WIDTH / 2, 80, '🛒  Grocery store math!', {
+    this.add.text(GAME_WIDTH / 2, 80, t('grocery.title'), {
       fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '700',
       color: '#3a1f5e',
     }).setOrigin(0.5);
@@ -58,7 +59,7 @@ export default class GroceryScene extends Phaser.Scene {
     this.hud = createHUD(this, { money: state.money, label: 'Store', character: char });
 
     // Pick 6 random problems
-    this.problems = pickProblems(PROBLEMS_PER_PLAY, state.money);
+    this.problems = pickProblems(PROBLEMS_PER_PLAY, state.money, Date.now(), getCurrentLang());
     this.problemIndex = 0;
     this.firstTryCorrect = 0;
     this.shownProblem = null;
@@ -113,7 +114,7 @@ export default class GroceryScene extends Phaser.Scene {
     choices.forEach((choice, idx) => {
       const spacing = cardW / (choices.length + 1);
       const x = -cardW / 2 + spacing * (idx + 1);
-      const label = isYesNo ? (choice === 'yes' ? '✅ Yes' : '❌ No') : choice;
+      const label = isYesNo ? (choice === 'yes' ? t('grocery.yes') : t('grocery.no')) : choice;
       const w = isYesNo ? 200 : Math.max(120, Math.min(220, 30 + label.length * 18));
       const btn = makeButton(this, x, btnY, label, {
         width: w, height: 64, fontSize: 26,
@@ -159,7 +160,7 @@ export default class GroceryScene extends Phaser.Scene {
 
   revealAnswer(p) {
     const hint = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 200,
-      `The answer is ${p.correct}. Tap it to keep going!`, {
+      t('grocery.revealHint', { correct: p.correct }), {
       fontFamily: 'Fredoka', fontSize: '22px', color: '#ff5a5f',
       backgroundColor: '#fff7e6', padding: { x: 12, y: 8 },
     }).setOrigin(0.5).setDepth(2000);
@@ -184,15 +185,15 @@ export default class GroceryScene extends Phaser.Scene {
     card.lineStyle(4, 0x3a1f5e, 1);
     card.strokeRoundedRect(GAME_WIDTH / 2 - 320, GAME_HEIGHT / 2 - 180, 640, 360, 24);
 
-    const txt = `Great work!\n\n${this.firstTryCorrect} out of ${this.problems.length} correct on first try.\n\nStore bonus: +${bonus} kr` +
-      (streak ? `\nStreak bonus: +${streak} kr` : '') +
-      `\n\nTotal money: ${state.money} kr`;
+    const txt = t('grocery.resultBase', { firstTry: this.firstTryCorrect, total: this.problems.length, bonus }) +
+      (streak ? t('grocery.resultStreak', { streak }) : '') +
+      t('grocery.resultTotal', { money: state.money });
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30, txt, {
       fontFamily: 'Fredoka', fontSize: '24px', color: '#3a1f5e',
       align: 'center', lineSpacing: 6,
     }).setOrigin(0.5).setDepth(2002);
 
-    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 130, 'Next: moving targets ▶', {
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 130, t('grocery.nextMoving'), {
       width: 380, height: 64, fontSize: 24,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => this.scene.start(SCENE_KEYS.Archery2),

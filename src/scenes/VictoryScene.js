@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, PALETTE } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
+import { t } from '../i18n/index.js';
 
 export default class VictoryScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.Victory); }
@@ -42,27 +43,25 @@ export default class VictoryScene extends Phaser.Scene {
     });
 
     // Big text
-    this.add.text(GAME_WIDTH / 2, 140, '🎉  You did it!  🎉', {
+    this.add.text(GAME_WIDTH / 2, 140, t('victory.title'), {
       fontFamily: 'Fredoka', fontSize: '64px', fontStyle: '700',
       color: '#fff7e6', stroke: '#3a1f5e', strokeThickness: 8,
     }).setOrigin(0.5);
-    this.add.text(GAME_WIDTH / 2, 220, `${char.name}, you saved the day!`, {
+    this.add.text(GAME_WIDTH / 2, 220, t('victory.subtitle', { name: char.name }), {
       fontFamily: 'Fredoka', fontSize: '32px', color: '#3a1f5e',
     }).setOrigin(0.5);
 
     // Stats panel
     const sv = this.registry.get('save');
     this.add.text(GAME_WIDTH / 2, 320,
-      `Total money: ${state.money} kr\n` +
-      `Archery high score: ${sv.highScores?.archery1 ?? 0} kr\n` +
-      `Moving target high: ${sv.highScores?.archery2 ?? 0} kr`,
+      t('victory.stats', { money: state.money, archery1: sv.highScores?.archery1 ?? 0, archery2: sv.highScores?.archery2 ?? 0 }),
       {
         fontFamily: 'Fredoka', fontSize: '24px', color: '#fff7e6',
         align: 'center', lineSpacing: 8, backgroundColor: '#3a1f5ecc',
         padding: { x: 24, y: 16 },
       }).setOrigin(0.5);
 
-    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 80, 'Save your score  ▶', {
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 80, t('victory.saveScore'), {
       width: 340, height: 70, fontSize: 26,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {

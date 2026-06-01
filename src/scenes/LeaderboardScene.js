@@ -3,6 +3,7 @@ import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
 import { loadLeaderboard, addLeaderboardEntry } from '../save.js';
+import { t } from '../i18n/index.js';
 
 export default class LeaderboardScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.Leaderboard); }
@@ -17,7 +18,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // Title
-    this.add.text(GAME_WIDTH / 2, 60, '🏆  High Scores', {
+    this.add.text(GAME_WIDTH / 2, 60, t('leaderboard.title'), {
       fontFamily: 'Fredoka', fontSize: '52px', fontStyle: '700',
       color: '#fff7e6', stroke: '#3a1f5e', strokeThickness: 8,
     }).setOrigin(0.5);
@@ -31,13 +32,13 @@ export default class LeaderboardScene extends Phaser.Scene {
     listBg.fillRoundedRect(listX, listY, listW, 480, 18);
     listBg.lineStyle(4, 0x3a1f5e, 1);
     listBg.strokeRoundedRect(listX, listY, listW, 480, 18);
-    this.add.text(listX + 24, listY + 14, 'Top 10', {
+    this.add.text(listX + 24, listY + 14, t('leaderboard.top10'), {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700', color: '#3a1f5e',
     });
 
     const entries = loadLeaderboard().slice(0, 10);
     if (entries.length === 0) {
-      this.add.text(listX + listW / 2, listY + 240, 'No scores yet —\nbe the first!', {
+      this.add.text(listX + listW / 2, listY + 240, t('leaderboard.noScores'), {
         fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600',
         color: '#3a1f5e', align: 'center',
       }).setOrigin(0.5);
@@ -78,7 +79,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     card.lineStyle(4, 0x3a1f5e, 1);
     card.strokeRoundedRect(cardX, cardY, cardW, 480, 18);
 
-    this.add.text(cardX + cardW / 2, cardY + 40, 'Your score', {
+    this.add.text(cardX + cardW / 2, cardY + 40, t('leaderboard.yourScore'), {
       fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600', color: '#5a3a8a',
     }).setOrigin(0.5);
     this.add.text(cardX + cardW / 2, cardY + 100, `${runScore} kr`, {
@@ -86,7 +87,7 @@ export default class LeaderboardScene extends Phaser.Scene {
       color: '#ff5a5f', stroke: '#3a1f5e', strokeThickness: 6,
     }).setOrigin(0.5);
 
-    this.add.text(cardX + cardW / 2, cardY + 180, 'Type your name:', {
+    this.add.text(cardX + cardW / 2, cardY + 180, t('leaderboard.typeName'), {
       fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600', color: '#3a1f5e',
     }).setOrigin(0.5);
 
@@ -97,7 +98,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     this.nameInput = document.createElement('input');
     this.nameInput.type = 'text';
     this.nameInput.maxLength = 12;
-    this.nameInput.placeholder = 'Player';
+    this.nameInput.placeholder = t('leaderboard.namePlaceholder');
     this.nameInput.autocapitalize = 'words';
     this.nameInput.autocomplete = 'off';
     this.nameInput.spellcheck = false;
@@ -149,12 +150,12 @@ export default class LeaderboardScene extends Phaser.Scene {
     this._repositionInput = repositionInput;
 
     // Save & shop button
-    makeButton(this, cardX + cardW / 2, cardY + 360, 'Save & shop  ▶', {
+    makeButton(this, cardX + cardW / 2, cardY + 360, t('leaderboard.saveShop'), {
       width: 320, height: 64, fontSize: 24,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
         SFX.select();
-        const name = (this.nameInput && this.nameInput.value) || 'Player';
+        const name = (this.nameInput && this.nameInput.value) || t('leaderboard.namePlaceholder');
         addLeaderboardEntry({ name, score: runScore });
         // Initialise the gift-shop cart on the registry before transitioning.
         const gs = this.registry.get('gameState');
@@ -165,11 +166,11 @@ export default class LeaderboardScene extends Phaser.Scene {
     });
 
     // Skip-link in case they don't want to shop
-    makeButton(this, cardX + cardW / 2, cardY + 430, 'Skip shopping', {
+    makeButton(this, cardX + cardW / 2, cardY + 430, t('leaderboard.skipShopping'), {
       width: 200, height: 44, fontSize: 18,
       color: 0xeeeeee, hoverColor: 0xffffff, textColor: '#3a1f5e',
       onClick: () => {
-        const name = (this.nameInput && this.nameInput.value) || 'Player';
+        const name = (this.nameInput && this.nameInput.value) || t('leaderboard.namePlaceholder');
         addLeaderboardEntry({ name, score: runScore });
         this.scene.start(SCENE_KEYS.Title);
       },

@@ -3,6 +3,7 @@ import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS, PALETTE } from '../con
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
 import { SHOP_ITEMS } from './GiftShopScene.js';
+import { t } from '../i18n/index.js';
 
 export default class PrizeShowcaseScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.PrizeShowcase); }
@@ -28,7 +29,7 @@ export default class PrizeShowcaseScene extends Phaser.Scene {
 
     // Title
     const playerName = state.playerName || 'Player';
-    this.add.text(GAME_WIDTH / 2, 70, `🎉  Look at your prizes, ${playerName}!`, {
+    this.add.text(GAME_WIDTH / 2, 70, t('prizeShowcase.title', { name: playerName }), {
       fontFamily: 'Fredoka', fontSize: '38px', fontStyle: '700',
       color: '#fff7e6', stroke: '#3a1f5e', strokeThickness: 7,
     }).setOrigin(0.5);
@@ -48,7 +49,7 @@ export default class PrizeShowcaseScene extends Phaser.Scene {
     if (cart.length === 0) {
       // Empty cart fallback
       this.add.text(GAME_WIDTH / 2, 240,
-        '💪  You saved all your kronor for next time!\n\n(Or play again to earn more!)', {
+        t('prizeShowcase.emptyCart'), {
           fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600',
           color: '#fff7e6', stroke: '#3a1f5e', strokeThickness: 5,
           align: 'center', lineSpacing: 8,
@@ -75,7 +76,7 @@ export default class PrizeShowcaseScene extends Phaser.Scene {
           yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
         });
         // Label below
-        const label = this.add.text(ix, iy + 38, item.name, {
+        const label = this.add.text(ix, iy + 38, t(`shop.${item.id}.name`), {
           fontFamily: 'Fredoka', fontSize: '13px', fontStyle: '600',
           color: '#3a1f5e', backgroundColor: '#fff7e6cc', padding: { x: 6, y: 2 },
         }).setOrigin(0.5);
@@ -87,7 +88,7 @@ export default class PrizeShowcaseScene extends Phaser.Scene {
     }
 
     // Play again button
-    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 60, 'Play again  ▶', {
+    makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 60, t('prizeShowcase.playAgain'), {
       width: 280, height: 64, fontSize: 26,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {

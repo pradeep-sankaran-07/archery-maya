@@ -3,6 +3,7 @@ import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, CHARACTERS } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
+import { t } from '../i18n/index.js';
 
 const GROUPS = ['Kids', 'Grown-ups', 'Pets'];
 
@@ -26,7 +27,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
     bg.fillGradientStyle(0xfff7e6, 0xfff7e6, 0xffe6c0, 0xffe6c0, 1);
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    this.add.text(GAME_WIDTH / 2, 30, 'Choose your hero!', {
+    this.add.text(GAME_WIDTH / 2, 30, t('charSelect.heading'), {
       fontFamily: 'Fredoka', fontSize: '34px', fontStyle: '700',
       color: '#3a1f5e',
     }).setOrigin(0.5, 0);
@@ -47,7 +48,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
       const startX = (GAME_WIDTH - rowW) / 2;
 
       // Group label, left-aligned with the row
-      this.add.text(startX, groupY, group, {
+      this.add.text(startX, groupY, t(`charSelect.group.${group}`), {
         fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '600',
         color: '#5a3a8a',
       }).setOrigin(0, 0);
@@ -103,7 +104,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
             s.portrait.setScale(sel ? s.layout.selectedScale : s.layout.portraitScale);
             s.nameTxt.setColor(sel ? '#ff5a5f' : '#3a1f5e');
           });
-          startBtn.setLabel(`Play as ${c.name}  ▶`);
+          startBtn.setLabel(t('charSelect.playAs', { name: c.name }));
         });
 
         slots.set(c.id, { portrait, nameTxt, drawSlot, layout: lay });
@@ -113,7 +114,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
     });
 
     const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50,
-      `Play as ${CHARACTERS.find((c) => c.id === selectedId).name}  ▶`, {
+      t('charSelect.playAs', { name: CHARACTERS.find((c) => c.id === selectedId).name }), {
       width: 320, height: 60, fontSize: 24,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
@@ -123,7 +124,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
       },
     });
 
-    makeButton(this, 90, GAME_HEIGHT - 50, '← Back', {
+    makeButton(this, 90, GAME_HEIGHT - 50, t('charSelect.back'), {
       width: 120, height: 48, fontSize: 18,
       color: 0xeeeeee, hoverColor: 0xffffff, textColor: '#3a1f5e',
       onClick: () => this.scene.start(SCENE_KEYS.Title),

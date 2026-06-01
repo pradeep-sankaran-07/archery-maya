@@ -1,4 +1,5 @@
 import { CURRENCY } from '../config.js';
+import { t } from '../i18n/index.js';
 
 export function createHUD(scene, { hearts = 0, money = 0, label = '', character = null } = {}) {
   const hud = scene.add.container(0, 0).setScrollFactor(0).setDepth(1000);
@@ -53,14 +54,14 @@ export function createHUD(scene, { hearts = 0, money = 0, label = '', character 
     logoBg.lineStyle(2, 0xffc94a, 0.7);
     logoBg.strokeRoundedRect(cx - 140, 8, 280, 52, 14);
     hud.add(logoBg);
-    const logo = scene.add.text(cx, 22, '🏹  Archery Maya', {
+    const logo = scene.add.text(cx, 22, t('hud.title'), {
       fontFamily: 'Fredoka',
       fontSize: '18px',
       fontStyle: '700',
       color: '#fff7e6',
     }).setOrigin(0.5, 0);
     hud.add(logo);
-    const sub = scene.add.text(cx, 44, `Playing as ${character.name}`, {
+    const sub = scene.add.text(cx, 44, t('hud.playingAs', { name: character.name }), {
       fontFamily: 'Fredoka',
       fontSize: '13px',
       color: '#ffd966',

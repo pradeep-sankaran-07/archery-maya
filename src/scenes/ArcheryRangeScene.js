@@ -5,6 +5,7 @@ import { makeButton } from '../ui/Button.js';
 import { makeTouchButton } from '../ui/TouchControls.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
+import { t } from '../i18n/index.js';
 
 const ARROWS_PER_ROUND = 8;
 
@@ -47,7 +48,7 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     }
 
     // "Archery range" sign — sits below the top-center logo banner
-    this.add.text(GAME_WIDTH / 2, 80, this.moving ? 'Moving Target Range' : 'Archery Range', {
+    this.add.text(GAME_WIDTH / 2, 80, this.moving ? t('archery.movingTitle') : t('archery.title'), {
       fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700',
       color: '#ffffff', stroke: '#3a1f5e', strokeThickness: 6,
     }).setOrigin(0.5, 0);
@@ -78,11 +79,11 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     // Game state
     this.arrowsLeft = ARROWS_PER_ROUND;
     this.roundMoney = 0;
-    this.hud = createHUD(this, { money: state.money, label: `Arrows left: ${this.arrowsLeft}`, character: char });
+    this.hud = createHUD(this, { money: state.money, label: t('archery.arrowsLeft', { count: this.arrowsLeft }), character: char });
 
     // Aim hint
     this.add.text(GAME_WIDTH / 2, 125,
-      'Hold ↑ or ↓ to aim • SPACE to shoot', {
+      t('archery.aimHint'), {
         fontFamily: 'Fredoka', fontSize: '18px', color: '#3a1f5e',
         backgroundColor: '#fff7e6cc', padding: { x: 12, y: 6 },
       }).setOrigin(0.5);
@@ -241,7 +242,7 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     const state = this.registry.get('gameState');
     const arrow = ARROW_COLORS.find((a) => a.id === state.arrow);
     this.arrowsLeft -= 1;
-    this.hud.setLabel(`Arrows left: ${this.arrowsLeft}`);
+    this.hud.setLabel(t('archery.arrowsLeft', { count: this.arrowsLeft }));
     SFX.shoot();
     const startX = this.bow.x + Math.cos(this.aimAngle) * 24;
     const startY = this.bow.y + Math.sin(this.aimAngle) * 24;
@@ -340,13 +341,13 @@ export default class ArcheryRangeScene extends Phaser.Scene {
     card.strokeRoundedRect(GAME_WIDTH / 2 - 280, GAME_HEIGHT / 2 - 160, 560, 320, 24);
 
     const txt = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80,
-      `Nice shooting!\n\nYou earned ${this.roundMoney} kr this round.\nTotal: ${state.money} kr`,
+      t('archery.niceShooting', { earned: this.roundMoney, total: state.money }),
       {
         fontFamily: 'Fredoka', fontSize: '28px', color: '#3a1f5e',
         align: 'center', lineSpacing: 8,
       }).setOrigin(0.5).setDepth(2002);
 
-    const nextLabel = this.moving ? 'On to the adventure  ▶' : 'Off to the store  ▶';
+    const nextLabel = this.moving ? t('archery.nextAdventure') : t('archery.nextStore');
     const nextScene = this.moving ? SCENE_KEYS.Adventure : SCENE_KEYS.Grocery;
     const btn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80, nextLabel, {
       width: 360, height: 64, fontSize: 24,

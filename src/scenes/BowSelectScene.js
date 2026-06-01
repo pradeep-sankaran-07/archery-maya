@@ -3,6 +3,7 @@ import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT, BOWS, ARROW_COLORS, CHARACTERS } f
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
+import { t } from '../i18n/index.js';
 
 export default class BowSelectScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.BowSelect); }
@@ -12,7 +13,7 @@ export default class BowSelectScene extends Phaser.Scene {
     bg.fillGradientStyle(0xfff7e6, 0xfff7e6, 0xffe6c0, 0xffe6c0, 1);
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    this.add.text(GAME_WIDTH / 2, 50, 'Pick a bow and arrow!', {
+    this.add.text(GAME_WIDTH / 2, 50, t('bowSelect.heading'), {
       fontFamily: 'Fredoka', fontSize: '40px', fontStyle: '700', color: '#3a1f5e',
     }).setOrigin(0.5);
 
@@ -34,7 +35,7 @@ export default class BowSelectScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Bow choices
-    this.add.text(750, 130, 'Bow', { fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600', color: '#3a1f5e' });
+    this.add.text(750, 130, t('bowSelect.bowLabel'), { fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600', color: '#3a1f5e' });
     const bowButtons = [];
     BOWS.forEach((b, i) => {
       const x = 760 + (i % 2) * 220;
@@ -49,7 +50,7 @@ export default class BowSelectScene extends Phaser.Scene {
       };
       drawCard(b.id === bowId);
       const img = this.add.image(x + 60, y + 50, `bow_${b.id}_${arrowId}`).setScale(0.9);
-      this.add.text(x + 110, y + 50, b.name, {
+      this.add.text(x + 110, y + 50, t(`bow.${b.id}.name`), {
         fontFamily: 'Fredoka', fontSize: '18px', color: '#3a1f5e',
       }).setOrigin(0, 0.5);
       const hit = this.add.rectangle(x + 90, y + 50, 180, 100, 0x000000, 0).setInteractive({ useHandCursor: true });
@@ -64,7 +65,7 @@ export default class BowSelectScene extends Phaser.Scene {
     });
 
     // Arrow color choices
-    this.add.text(750, 460, 'Arrow color', { fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600', color: '#3a1f5e' });
+    this.add.text(750, 460, t('bowSelect.arrowLabel'), { fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600', color: '#3a1f5e' });
     const arrowButtons = [];
     ARROW_COLORS.forEach((a, i) => {
       const x = 760 + i * 145;
@@ -79,7 +80,7 @@ export default class BowSelectScene extends Phaser.Scene {
       };
       drawCard(a.id === arrowId);
       this.add.image(x + 60, y + 36, `arrow_${a.id}`);
-      this.add.text(x + 60, y + 76, a.name, {
+      this.add.text(x + 60, y + 76, t(`arrow.${a.id}.name`), {
         fontFamily: 'Fredoka', fontSize: '18px', color: '#3a1f5e',
       }).setOrigin(0.5);
       const hit = this.add.rectangle(x + 60, y + 50, 120, 100, 0x000000, 0).setInteractive({ useHandCursor: true });
@@ -93,7 +94,7 @@ export default class BowSelectScene extends Phaser.Scene {
       arrowButtons.push({ id: a.id, draw: drawCard });
     });
 
-    const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50, 'Start!  ▶', {
+    const startBtn = makeButton(this, GAME_WIDTH / 2, GAME_HEIGHT - 50, t('bowSelect.start'), {
       width: 280, height: 64, fontSize: 28,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
@@ -105,7 +106,7 @@ export default class BowSelectScene extends Phaser.Scene {
       },
     });
 
-    makeButton(this, 100, GAME_HEIGHT - 50, '← Back', {
+    makeButton(this, 100, GAME_HEIGHT - 50, t('bowSelect.back'), {
       width: 130, height: 50, fontSize: 20,
       color: 0xeeeeee, hoverColor: 0xffffff, textColor: '#3a1f5e',
       onClick: () => this.scene.start(SCENE_KEYS.CharacterSelect),

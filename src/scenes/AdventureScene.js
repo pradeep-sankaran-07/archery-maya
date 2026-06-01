@@ -4,6 +4,7 @@ import { createHUD } from '../ui/HUD.js';
 import { makeTouchButton } from '../ui/TouchControls.js';
 import { SFX } from '../art/audio.js';
 import { save } from '../save.js';
+import { t } from '../i18n/index.js';
 
 const TILE = 64;
 const WORLD_HEIGHT = 11; // tiles
@@ -108,7 +109,7 @@ export default class AdventureScene extends Phaser.Scene {
     this.buildSegment(this.segment);
 
     // HUD
-    this.hud = createHUD(this, { hearts: 3, money: state.money, label: 'Adventure!', character: this.charDef });
+    this.hud = createHUD(this, { hearts: 3, money: state.money, label: t('adventure.hudLabel'), character: this.charDef });
     this.hud.setHearts(this.hearts);
 
     // Keys
@@ -127,7 +128,7 @@ export default class AdventureScene extends Phaser.Scene {
     if (this.sys.game.device.input.touch) this.buildTouchControls();
 
     // Hint banner
-    this.hintTxt = this.add.text(GAME_WIDTH / 2, 70, '← → walk   ↑ jump   space shoot', {
+    this.hintTxt = this.add.text(GAME_WIDTH / 2, 70, t('adventure.hint'), {
       fontFamily: 'Fredoka', fontSize: '20px', color: '#fff7e6',
       backgroundColor: '#3a1f5ecc', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1500);
@@ -631,11 +632,11 @@ export default class AdventureScene extends Phaser.Scene {
     SFX.coin();
     const txt = label || `+${amount} kr`;
     const fontSize = amount >= 25 ? '32px' : '22px';
-    const t = this.add.text(x, y - 30, txt, {
+    const floatLabel = this.add.text(x, y - 30, txt, {
       fontFamily: 'Fredoka', fontSize, fontStyle: '700',
       color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(800);
-    this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 900, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: floatLabel, y: floatLabel.y - 50, alpha: 0, duration: 900, onComplete: () => floatLabel.destroy() });
   }
 
   spawnFireball(kupal) {
@@ -674,11 +675,11 @@ export default class AdventureScene extends Phaser.Scene {
     state.money += value;
     this.hud.setMoney(state.money);
     SFX.coin();
-    const t = this.add.text(fish.x, fish.y - 20, `Yum! +${value} kr 🐟`, {
+    const floatTxt = this.add.text(fish.x, fish.y - 20, t('adventure.fishEat', { value }), {
       fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '700',
       color: '#ffe066', stroke: '#3a1f5e', strokeThickness: 4,
     }).setOrigin(0.5);
-    this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 900, onComplete: () => t.destroy() });
+    this.tweens.add({ targets: floatTxt, y: floatTxt.y - 50, alpha: 0, duration: 900, onComplete: () => floatTxt.destroy() });
     this.tweens.add({ targets: fish, alpha: 0, scaleX: 0, scaleY: 0, duration: 200, onComplete: () => fish.destroy() });
   }
 
@@ -706,7 +707,7 @@ export default class AdventureScene extends Phaser.Scene {
       this.bossWall = [];
     }
     // Banner
-    const banner = this.add.text(GAME_WIDTH / 2, 120, 'Kupal defeated! The flag is yours.', {
+    const banner = this.add.text(GAME_WIDTH / 2, 120, t('adventure.kupalDefeated'), {
       fontFamily: 'Fredoka', fontSize: '22px', fontStyle: '700',
       color: '#fff7e6', backgroundColor: '#2e7d32cc', padding: { x: 14, y: 8 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1500);
