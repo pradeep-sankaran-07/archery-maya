@@ -2,8 +2,9 @@ import Phaser from 'phaser';
 import { SCENE_KEYS, GAME_WIDTH, GAME_HEIGHT } from '../config.js';
 import { makeButton } from '../ui/Button.js';
 import { SFX } from '../art/audio.js';
-import { loadLeaderboard, addLeaderboardEntry } from '../save.js';
 import { t } from '../i18n/index.js';
+import { fetchScores, submitScore } from '../leaderboard.js';
+import { createScoreList } from '../ui/ScoreList.js';
 
 export default class LeaderboardScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.Leaderboard); }
@@ -26,50 +27,36 @@ export default class LeaderboardScene extends Phaser.Scene {
     // Two-column layout: list on left, name entry on right
     const listX = 60, listY = 130, listW = 640;
 
-    // Left card — top 10 leaderboard
+    // Left card — shared leaderboard (scrollable)
+    const listH = 480;
     const listBg = this.add.graphics();
     listBg.fillStyle(0xfff7e6, 0.95);
-    listBg.fillRoundedRect(listX, listY, listW, 480, 18);
+    listBg.fillRoundedRect(listX, listY, listW, listH, 18);
     listBg.lineStyle(4, 0x3a1f5e, 1);
-    listBg.strokeRoundedRect(listX, listY, listW, 480, 18);
-    this.add.text(listX + 24, listY + 14, t('leaderboard.top10'), {
-      fontFamily: 'Fredoka', fontSize: '28px', fontStyle: '700', color: '#3a1f5e',
+    listBg.strokeRoundedRect(listX, listY, listW, listH, 18);
+    this.add.text(listX + 24, listY + 14, t('leaderboard.title'), {
+      fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '700', color: '#3a1f5e',
     });
 
-    const entries = loadLeaderboard().slice(0, 10);
-    if (entries.length === 0) {
-      this.add.text(listX + listW / 2, listY + 240, t('leaderboard.noScores'), {
-        fontFamily: 'Fredoka', fontSize: '26px', fontStyle: '600',
-        color: '#3a1f5e', align: 'center',
-      }).setOrigin(0.5);
-    } else {
-      const rowH = 36;
-      entries.forEach((e, i) => {
-        const y = listY + 60 + i * rowH;
-        const rank = `${i + 1}.`;
-        const dateStr = formatDate(e.date);
-        // rank
-        this.add.text(listX + 24, y, rank, {
-          fontFamily: 'Fredoka', fontSize: '20px', fontStyle: '700',
-          color: i === 0 ? '#c4951c' : '#3a1f5e',
-        });
-        // name (truncated)
-        this.add.text(listX + 70, y, e.name, {
-          fontFamily: 'Fredoka', fontSize: '20px', fontStyle: '600',
-          color: '#3a1f5e',
-        });
-        // score
-        this.add.text(listX + 360, y, `${e.score} kr`, {
-          fontFamily: 'Fredoka', fontSize: '20px', fontStyle: '700',
-          color: '#3a1f5e',
-        });
-        // date
-        this.add.text(listX + 500, y, dateStr, {
-          fontFamily: 'Fredoka', fontSize: '16px',
-          color: '#6a5288',
-        });
+    // Loading text, replaced by the scrollable list once scores resolve.
+    this.loadingText = this.add.text(listX + listW / 2, listY + listH / 2, t('leaderboard.loading'), {
+      fontFamily: 'Fredoka', fontSize: '24px', fontStyle: '600', color: '#3a1f5e',
+    }).setOrigin(0.5);
+    this.offlineText = this.add.text(listX + listW / 2, listY + listH - 8, '', {
+      fontFamily: 'Fredoka', fontSize: '14px', color: '#6a5288',
+    }).setOrigin(0.5, 1);
+
+    this.scoreList = null;
+    const listTop = listY + 56;
+    fetchScores(100).then(({ entries, offline }) => {
+      if (!this.scene.isActive()) return;
+      if (this.loadingText) { this.loadingText.destroy(); this.loadingText = null; }
+      this.scoreList = createScoreList(this, {
+        x: listX + 16, y: listTop, w: listW - 32, h: listY + listH - listTop - 16,
+        entries, highlightName: this._submittedName || null,
       });
-    }
+      if (offline) this.offlineText.setText(t('leaderboard.offline'));
+    });
 
     // Right card — your score + name entry
     const cardX = 740, cardY = 130, cardW = 480;
@@ -149,19 +136,28 @@ export default class LeaderboardScene extends Phaser.Scene {
     window.addEventListener('resize', repositionInput);
     this._repositionInput = repositionInput;
 
+    // Submit the score to the shared board, then run `next`. Fire-and-forget:
+    // submitScore updates the local cache optimistically so we don't block the
+    // UI on the network round-trip.
+    const submitThen = (next) => {
+      const name = (this.nameInput && this.nameInput.value) || t('leaderboard.namePlaceholder');
+      submitScore(name, runScore);
+      next(name);
+    };
+
     // Save & shop button
     makeButton(this, cardX + cardW / 2, cardY + 360, t('leaderboard.saveShop'), {
       width: 320, height: 64, fontSize: 24,
       color: 0x4caf50, hoverColor: 0x6bc06f, textColor: '#ffffff',
       onClick: () => {
         SFX.select();
-        const name = (this.nameInput && this.nameInput.value) || t('leaderboard.namePlaceholder');
-        addLeaderboardEntry({ name, score: runScore });
-        // Initialise the gift-shop cart on the registry before transitioning.
-        const gs = this.registry.get('gameState');
-        gs.cart = [];
-        gs.playerName = name;
-        this.scene.start(SCENE_KEYS.GiftShop);
+        submitThen((name) => {
+          // Initialise the gift-shop cart on the registry before transitioning.
+          const gs = this.registry.get('gameState');
+          gs.cart = [];
+          gs.playerName = name;
+          this.scene.start(SCENE_KEYS.GiftShop);
+        });
       },
     });
 
@@ -170,9 +166,7 @@ export default class LeaderboardScene extends Phaser.Scene {
       width: 200, height: 44, fontSize: 18,
       color: 0xeeeeee, hoverColor: 0xffffff, textColor: '#3a1f5e',
       onClick: () => {
-        const name = (this.nameInput && this.nameInput.value) || t('leaderboard.namePlaceholder');
-        addLeaderboardEntry({ name, score: runScore });
-        this.scene.start(SCENE_KEYS.Title);
+        submitThen(() => this.scene.start(SCENE_KEYS.Title));
       },
     });
 
@@ -185,18 +179,9 @@ export default class LeaderboardScene extends Phaser.Scene {
       }
       if (this.nameInput && this.nameInput.parentNode) this.nameInput.parentNode.removeChild(this.nameInput);
       this.nameInput = null;
+      if (this.scoreList) { this.scoreList.destroy(); this.scoreList = null; }
     };
     this.events.once('shutdown', cleanup);
     this.events.once('destroy', cleanup);
-  }
-}
-
-function formatDate(iso) {
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-  } catch {
-    return '';
   }
 }

@@ -136,6 +136,7 @@ export const SCENE_KEYS = {
   Adventure: 'AdventureScene',
   Victory: 'VictoryScene',
   Leaderboard: 'LeaderboardScene',
+  LeaderboardView: 'LeaderboardViewScene',
   GiftShop: 'GiftShopScene',
   PrizeShowcase: 'PrizeShowcaseScene',
 };

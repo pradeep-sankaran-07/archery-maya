@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS } from '../config.js';
 import { load } from '../save.js';
 import { setMuted } from '../art/audio.js';
+import { migrateLocalEntriesOnce } from '../leaderboard.js';
 
 export default class BootScene extends Phaser.Scene {
   constructor() { super(SCENE_KEYS.Boot); }
@@ -20,6 +21,9 @@ export default class BootScene extends Phaser.Scene {
       playerName: '',
     });
     setMuted(!!data.muted);
+    // One-time: push this device's old local-only scores up to the shared
+    // board. Fire-and-forget; no-ops after the first successful run.
+    migrateLocalEntriesOnce();
     this.scene.start(SCENE_KEYS.Preload);
   }
 }

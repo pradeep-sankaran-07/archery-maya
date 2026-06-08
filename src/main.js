@@ -15,6 +15,7 @@ import MovingArcheryScene from './scenes/MovingArcheryScene.js';
 import AdventureScene from './scenes/AdventureScene.js';
 import VictoryScene from './scenes/VictoryScene.js';
 import LeaderboardScene from './scenes/LeaderboardScene.js';
+import LeaderboardViewScene from './scenes/LeaderboardViewScene.js';
 import GiftShopScene from './scenes/GiftShopScene.js';
 import PrizeShowcaseScene from './scenes/PrizeShowcaseScene.js';
 
@@ -51,6 +52,7 @@ const config = {
     AdventureScene,
     VictoryScene,
     LeaderboardScene,
+    LeaderboardViewScene,
     GiftShopScene,
     PrizeShowcaseScene,
   ],

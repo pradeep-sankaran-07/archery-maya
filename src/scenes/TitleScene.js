@@ -64,9 +64,18 @@ export default class TitleScene extends Phaser.Scene {
       },
     });
 
-    makeButton(this, GAME_WIDTH / 2, 540, t('title.howToPlay'), {
-      width: 240, height: 60, fontSize: 24, color: 0xffc94a, hoverColor: 0xffd966,
+    makeButton(this, GAME_WIDTH / 2, 535, t('title.howToPlay'), {
+      width: 240, height: 56, fontSize: 24, color: 0xffc94a, hoverColor: 0xffd966,
       onClick: () => this.showHelp(),
+    });
+
+    makeButton(this, GAME_WIDTH / 2, 612, t('title.leaderboard'), {
+      width: 280, height: 56, fontSize: 24, color: 0xff9ec1, hoverColor: 0xffb3d1,
+      textColor: '#3a1f5e',
+      onClick: () => {
+        SFX.select();
+        this.scene.start(SCENE_KEYS.LeaderboardView);
+      },
     });
 
     // Mute button
