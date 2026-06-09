@@ -14,10 +14,11 @@
 // never breaks.
 // ────────────────────────────────────────────────────────────────────────
 
-// ⬇⬇⬇  PASTE YOUR SUPABASE VALUES HERE  ⬇⬇⬇
-const SUPABASE_URL = 'PASTE_SUPABASE_URL_HERE';        // e.g. https://abcd1234.supabase.co
-const SUPABASE_ANON_KEY = 'PASTE_SUPABASE_ANON_KEY_HERE';
-// ⬆⬆⬆  PASTE YOUR SUPABASE VALUES HERE  ⬆⬆⬆
+// Project URL + publishable (anon) key. The publishable key is browser-safe:
+// Row Level Security on the `scores` table restricts anonymous callers to
+// SELECT + INSERT only — they can't edit or wipe the board.
+const SUPABASE_URL = 'https://ngkuycthcfxxemjudbhg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_a1OuXPnXmIAfUAPjoSeMxA_sCZL-CJh';
 
 const TABLE = 'scores';
 const CACHE_KEY = 'archery-maya.leaderboard.cache.v1';
@@ -30,9 +31,10 @@ function isConfigured() {
 }
 
 function headers(extra = {}) {
+  // Publishable (sb_publishable_…) keys authenticate via the `apikey` header
+  // only — they are not JWTs, so no Authorization: Bearer header is sent.
   return {
     apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     ...extra,
   };
 }
