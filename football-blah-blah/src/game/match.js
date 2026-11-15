@@ -124,11 +124,17 @@ export class Match {
     this.genieHands = [buildGenieHand(), buildGenieHand()];
     this.genieHands.forEach((h) => { h.visible = false; this.group.add(h); });
     this.circusNet = buildCircusNet(); this.circusNet.visible = false; this.group.add(this.circusNet);
-    this.target = new THREE.Mesh(
-      new THREE.RingGeometry(0.35, 0.55, 28),
-      new THREE.MeshBasicMaterial({ color: 0xff3b3b, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }),
-    );
-    this.target.rotation.y = Math.PI / 2;
+    // Warning circle (goalie mode): a ring in the air where the ball will come
+    // and a big ring on the grass under it. Drawn on top of everything so the
+    // posts and players never hide it.
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xff3b3b, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false, depthTest: false });
+    this.target = new THREE.Group();
+    this.targetAir = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.55, 28), ringMat);
+    this.targetAir.rotation.y = Math.PI / 2;
+    this.targetGround = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.95, 32), ringMat);
+    this.targetGround.rotation.x = -Math.PI / 2;
+    this.targetGround.position.y = 0.05;
+    for (const m of [this.targetAir, this.targetGround]) { m.renderOrder = 20; this.target.add(m); }
     this.target.visible = false;
     this.group.add(this.target);
   }
@@ -402,7 +408,7 @@ export class Match {
         dir.normalize();
         target.copy(p.pos).addScaledVector(dir, 3);
         const dGoal = Math.abs(goalX - p.pos.x);
-        const shootRange = striker ? 18 : 14;
+        const shootRange = striker ? 18 : 19;
         if (dGoal < shootRange && Math.abs(p.pos.z) < 9 && p.dribbleT > 0.6) {
           p.windup = this.role === 'goalie' ? 0.75 : 0.45;
           if (this.role === 'goalie') this.prepareShotPreview(p);
@@ -449,13 +455,13 @@ export class Match {
         speed = 4.9;
       } else if (presser === p) {
         target = V().copy(own.pos).addScaledVector(own.vel, 0.3);
-        speed = p.team === 1 ? (striker ? 5.6 : 5.4) : 5.4;
+        speed = p.team === 1 ? (striker ? 5.6 : 5.4) : (striker ? 5.4 : 4.6);
       } else {
         // Cover: stand on the line between the ball and our goal.
         const k = 0.45;
         target = V(ownGoalX + (own.pos.x - ownGoalX) * k, 0, own.pos.z * k);
         if (Math.abs(target.x - ownGoalX) < 3.5) target.x = ownGoalX - Math.sign(ownGoalX) * 3.5;
-        speed = p.team === 1 ? 5.0 : 4.6;
+        speed = p.team === 1 ? 5.0 : (striker ? 4.6 : 4.0);
       }
     }
 
@@ -813,7 +819,7 @@ export class Match {
           let need = 0.4;
           if (o.human) need = this.role === 'striker' ? 0.6 : 0.45;
           else if (p.human) need = 0.7;
-          else if (p.team === 0) need = this.role === 'striker' ? 0.9 : 0.6;
+          else if (p.team === 0) need = this.role === 'striker' ? 0.9 : 1.0;
           else need = 0.55;
           if (p.tackle >= need && o.protect <= 0) {
             this.changeOwner(p);
@@ -1209,7 +1215,8 @@ export class Match {
     const lineZ = from.z + (goalZ - from.z) * clamp(k, 0, 1);
     this.shotPreview = { z: lineZ, goalZ, y: clamp(ty, 0.4, 1.8), t: 1.8 };
     this.target.visible = true;
-    this.target.position.set(kx, this.shotPreview.y, lineZ);
+    this.target.position.set(kx, 0, lineZ);
+    this.targetAir.position.y = this.shotPreview.y;
     if (!this.tips.watch) { this.tips.watch = true; this.toast(t('toast.watch'), 'watch', 0); }
     if (shooter && shooter.windup > 0) shooter.plannedAim = this.shotPreview;
   }
@@ -1605,7 +1612,8 @@ export class Match {
     }
     if (this.target.visible && this.shotPreview) {
       const s = 1 + Math.sin(this.time * 12) * 0.15;
-      this.target.scale.setScalar(s);
+      this.targetAir.scale.setScalar(s);
+      this.targetGround.scale.setScalar(s);
       this.shotPreview.t -= dt;
       if (this.shotPreview.t <= 0) this.hideShotPreview();
     }

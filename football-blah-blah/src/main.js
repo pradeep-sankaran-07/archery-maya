@@ -84,11 +84,26 @@ function updateCamera(dt) {
       const zoom = (celebrating ? 0.75 : 1) * wide;
       desiredP.set(desiredT.x, 10.5 * zoom, desiredT.z + 13 * zoom);
       fov = 40;
+    } else if (match.role === 'goalie' && !celebrating) {
+      // Portrait goalie: stand behind our own goal so the keeper, the goal and
+      // the warning circle are always on screen, looking up the pitch.
+      const h = match.hero.pos, b = match.ball.pos;
+      const near = match.shotPreview || b.x < -HL + 16;
+      const tz = THREE.MathUtils.clamp(h.z * 0.6 + b.z * 0.25, -4, 4);
+      desiredT.set(near ? -HL + 4 : -HL + 6, 0, tz);
+      desiredP.set(-HL - 5, 10, tz * 0.8);
+      fov = 64;
     } else {
-      const ahead = match.role === 'goalie' ? 6 : 4;
-      desiredT.set(THREE.MathUtils.clamp(f.x + ahead, -HL + 7, HL - 4), 0, THREE.MathUtils.clamp(f.z, -9, 9));
-      const zoom = celebrating ? 0.75 : 1;
-      desiredP.set(desiredT.x - 11 * zoom, 14 * zoom, desiredT.z);
+      // Portrait striker: a high camera behind the play, so the goal we attack
+      // sits below the scoreboard and the ball stays above the KICK button.
+      // Near our own goal it backs off further so that goal stays in view too.
+      const back = 6 + THREE.MathUtils.clamp((-f.x - 10) * 0.5, 0, 3);
+      const zoom = celebrating ? 0.8 : 1;
+      // ...and never so far forward that you slip under the buttons.
+      const cx = THREE.MathUtils.clamp(Math.min(f.x - back * zoom, match.hero.pos.x - 5.5), -HL - 5, HL - 8);
+      const tz = THREE.MathUtils.clamp(f.z, -9, 9);
+      desiredP.set(cx, 15 * zoom, tz);
+      desiredT.set(cx + 9.5 * zoom, 0, tz);
       fov = 56;
     }
   } else if (cam.mode === 'podium') {
@@ -136,14 +151,24 @@ let itemLabel = null;
 let itemLabelPos = null;
 function updateLabels() {
   if (!match) return;
+  let heroS = null;
+  const pos = [];
   for (const [p, el] of labelEls) {
     const s = toScreen(projV.set(p.pos.x, p.flyY + p.height + 0.3, p.pos.z));
     if (s.behind) { el.style.display = 'none'; continue; }
     el.style.display = '';
     el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px) translate(-50%, -100%)`;
+    if (p.human) { heroS = s; el.style.opacity = match.shotPreview ? '0.35' : ''; } else pos.push([el, s]);
+  }
+  // Never let another name tag cover yours: fade the ones that overlap it.
+  for (const [el, s] of pos) {
+    const over = heroS && Math.abs(s.x - heroS.x) < 70 && Math.abs(s.y - heroS.y) < 26;
+    el.style.opacity = over ? '0.25' : '';
   }
   if (itemLabel && itemLabelPos) {
     const s = toScreen(itemLabelPos);
+    const close = Math.hypot(match.hero.pos.x - itemLabelPos.x, match.hero.pos.z - itemLabelPos.z) < 3;
+    itemLabel.style.opacity = close ? '0' : '';
     itemLabel.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px) translate(-50%, -100%)`;
   }
 }
@@ -184,6 +209,7 @@ function coinPop(add, at) {
 function show(html, cls = 'dim') {
   screensEl.innerHTML = `<div class="screen ${cls}">${html}</div>`;
   const root = screensEl.firstElementChild;
+  if (root.querySelector('.sticky-bottom')) root.classList.add('has-sticky');
   root.querySelectorAll('[data-act]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
@@ -195,6 +221,24 @@ function show(html, cls = 'dim') {
   return root;
 }
 function clearScreen() { screensEl.innerHTML = ''; }
+
+// Keyboard on menus: Enter / Space presses the main (pulsing) button, Esc resumes a paused match.
+window.addEventListener('keydown', (e) => {
+  if (e.repeat || (e.target && e.target.tagName === 'INPUT')) return;
+  const root = screensEl.firstElementChild;
+  if (!root) return;
+  if (e.key === 'Escape' && match && match.paused) { e.preventDefault(); e.stopImmediatePropagation(); actions.resume(); return; }
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const vis = (b) => b && !b.disabled && b.offsetParent !== null;
+  const btn = [...root.querySelectorAll('.btn.pulse')].find(vis) || [...root.querySelectorAll('.btn.big')].find(vis)
+    || root.querySelector('.choice.sel') || root.querySelector('.choice')
+    || (root.querySelector('#trophy') && !root.querySelector('#trophyResult *') ? root.querySelector('#trophy') : null);
+  if (!btn) return;
+  e.preventDefault();
+  e.stopImmediatePropagation(); // don't let the same key also kick once the match starts
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  btn.click();
+});
 
 let portraits = {};
 const portraitOf = (id) => portraits[id] || '';
@@ -457,7 +501,7 @@ function onMatchEvent(type, data) {
     case 'hints':
       input.showHints({
         joyText: t('hint.joy'),
-        kickText: S.role === 'goalie' ? t('hint.dive') : t('hint.kick'),
+        kickText: isTouch ? (S.role === 'goalie' ? t('hint.dive') : t('hint.kick')) : (S.role === 'goalie' ? t('hint.diveKey') : t('hint.kickKey')),
         keysHtml: S.role === 'goalie' ? t('hint.keysGoalie') : t('hint.keys'),
       });
       setTimeout(() => input.clearHints(), 12000);
@@ -654,7 +698,12 @@ function screenTrophy() {
   const stage = el.querySelector('#trophy');
   let opened = false;
   stage.addEventListener('click', () => {
-    if (opened) return;
+    if (opened) {
+      // Tapping the open trophy again moves on (unless it's the diaper choice).
+      const next = el.querySelector('#nextBtn');
+      if (next && !el.querySelector('#buyTrophy')) next.click();
+      return;
+    }
     opened = true;
     unlockAudio();
     el.querySelector('#tapme').remove();
@@ -676,7 +725,7 @@ function screenTrophy() {
           <div class="row">
             <button class="btn gold" id="buyTrophy" ${can ? '' : 'disabled'}>${t('trophy.buy', { price: COINS.newTrophy })}</button>
             <button class="btn blue" id="againBtn">${t('trophy.again')}</button>
-            <button class="btn" id="nextBtn">${t('trophy.next')}</button>
+            <button class="btn pulse" id="nextBtn">${t('trophy.next')}</button>
           </div>
           ${can ? '' : `<div class="subtitle" style="font-size:15px">${t('trophy.noMoney')}</div>`}`;
         res.querySelector('#buyTrophy').addEventListener('click', () => {
@@ -797,7 +846,7 @@ function screenShop() {
     <div class="shop-grid" id="grid">${SHOP_ITEMS.map((it) => `
       <div class="item" data-id="${it.id}"><div class="e">${it.emoji}</div><div class="n">${t(`item.${it.id}`)}</div><div class="p">${it.price} kr</div></div>`).join('')}
     </div>
-    <div class="sticky-bottom"><button class="btn big pulse" id="doneBtn">${t('shop.done')}</button></div>`);
+    <div class="sticky-bottom solid"><button class="btn big pulse done-btn" id="doneBtn">${t('shop.done')}</button></div>`);
   const refresh = () => {
     el.querySelector('#wallet').textContent = `🪙 ${S.money} kr`;
     el.querySelectorAll('.item').forEach((node) => {

@@ -45,6 +45,8 @@ const EN = {
   'hint.joy': 'Drag here to run',
   'hint.kick': 'Tap to shoot! ⚽',
   'hint.dive': 'Tap to dive! 🧤',
+  'hint.kickKey': 'Press Space to shoot! ⚽',
+  'hint.diveKey': 'Press Space to dive! 🧤',
   'hint.keys': '<b>Arrow keys</b> run • <b>Space</b> kick • <b>Shift</b> pass • <b>E</b> power',
   'hint.keysGoalie': '<b>Arrow keys</b> move • <b>Space</b> dive / throw • <b>E</b> power',
 
@@ -212,6 +214,8 @@ const NO = {
   'hint.joy': 'Dra her for å løpe',
   'hint.kick': 'Trykk for å skyte! ⚽',
   'hint.dive': 'Trykk for å kaste deg! 🧤',
+  'hint.kickKey': 'Trykk mellomrom for å skyte! ⚽',
+  'hint.diveKey': 'Trykk mellomrom for å kaste deg! 🧤',
   'hint.keys': '<b>Piltaster</b> løp • <b>Mellomrom</b> spark • <b>Shift</b> pass • <b>E</b> kraft',
   'hint.keysGoalie': '<b>Piltaster</b> flytt • <b>Mellomrom</b> kast deg / kast • <b>E</b> kraft',
 
