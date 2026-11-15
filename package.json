@@ -1,15 +1,17 @@
 {
   "name": "archery-maya",
   "version": "1.0.0",
-  "description": "Archery Maya — a 2D adventure game for kids",
+  "description": "Archery Maya \u2014 a 2D adventure game for kids",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "dev:football": "vite --config football-blah-blah/vite.config.js",
+    "build": "vite build && vite build --config football-blah-blah/vite.config.js",
     "preview": "vite preview"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "vite": "^8.0.13"
