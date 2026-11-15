@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { t, initLang, setLang, getLang } from './i18n.js';
-import { SFX, unlockAudio, isMuted, setMuted, crowdStart, crowdStop } from './audio.js';
+import { SFX, unlockAudio, isMuted, setMuted, crowdStart, crowdStop, musicStart, musicStop, audioState } from './audio.js';
 import { CHARACTERS, charById, KITS, MATCH_SECONDS, COINS, SHOP_ITEMS, pickSurprise, shuffle } from './data.js';
 import { buildStadium } from './three/stadium.js';
 import { Particles } from './three/effects.js';
@@ -240,6 +240,7 @@ function show(html, cls = 'dim') {
     el.addEventListener('click', (e) => {
       e.preventDefault();
       unlockAudio();
+      if (!match || match.state === 'ended') musicStart(); // gentle menu music (not during play)
       const fn = actions[el.dataset.act];
       if (fn) fn(el.dataset.arg, el);
     });
@@ -274,6 +275,7 @@ const S = {
   hero: prefs.hero, theme: prefs.theme, role: prefs.role,
   teams: [], matchNo: 0, results: [], goals: {}, coins: 0, money: 0,
   prizes: [], cart: [], place: 3, trophyAttempt: 0, opp: 1, playerName: '', saved: false, matchStats: [],
+  mode: 'cup', mates: [], opps: [], // mode 'friendly' = one match with teams you picked
 };
 let match = null;
 let podium = null;
@@ -283,6 +285,7 @@ input.onPause = () => { if (match && match.state !== 'ended') actions.pause(); }
 
 function teamName(i) {
   if (i === 0) return t('team.mine', { name: charById(S.hero).name });
+  if (S.mode === 'friendly') return t('team.mine', { name: charById(S.opps[0]).name });
   return t(`team.${S.theme}.${i === 1 ? 'a' : 'b'}`);
 }
 
@@ -300,6 +303,23 @@ function buildCup() {
     { idx: 2, kit: KITS[2], players: b },
   ];
   S.matchNo = 0; S.results = []; S.goals = {}; S.coins = 0; S.money = 0; S.prizes = []; S.cart = []; S.trophyAttempt = 0; S.saved = false; S.matchStats = [];
+}
+
+/** Teams you picked yourself: a keeper who isn't a pet if possible. */
+function buildFriendly() {
+  const hero = charById(S.hero);
+  const mates = S.mates.map(charById);
+  const opps = S.opps.map(charById);
+  const keeperFirst = (list) => { const i = list.findIndex((c) => !c.isPet); return i > 0 ? [list[i], ...list.filter((_, k) => k !== i)] : list; };
+  let mine;
+  if (S.role === 'goalie') mine = [hero, ...mates];
+  else { const [gk, ...rest] = keeperFirst(mates); mine = [gk, hero, ...rest]; }
+  S.teams = [
+    { idx: 0, kit: KITS[0], players: mine },
+    { idx: 1, kit: KITS[1], players: keeperFirst(opps) },
+    { idx: 2, kit: KITS[2], players: keeperFirst(opps) },
+  ];
+  S.matchNo = 0; S.results = []; S.goals = {}; S.coins = 0; S.matchStats = [];
 }
 
 function standings() {
@@ -331,16 +351,51 @@ function simulateOtherMatch() {
 // ── Actions ─────────────────────────────────────────────────────────────
 const actions = {
   title() { screenTitle(); },
-  play() { SFX.select(); screenChars(); },
+  play() { SFX.select(); S.mode = 'cup'; screenChars(); },
+  chooseTeams() { SFX.select(); S.mode = 'friendly'; screenChars(); },
+  pickTeamChar(id) {
+    const step = pickStep;
+    const list = step === 'mates' ? S.mates : S.opps;
+    const max = step === 'mates' ? 2 : 3;
+    const i = list.indexOf(id);
+    if (i >= 0) { list.splice(i, 1); SFX.click(); }
+    else if (list.length < max) { list.push(id); SFX.select(); }
+    else { list.shift(); list.push(id); SFX.select(); }
+    pickRefresh();
+  },
+  randomPick() {
+    const step = pickStep;
+    const taken = new Set([S.hero, ...S.mates, ...S.opps]);
+    const list = step === 'mates' ? S.mates : S.opps;
+    const max = step === 'mates' ? 2 : 3;
+    const free = shuffle(CHARACTERS.filter((c) => !taken.has(c.id)));
+    while (list.length < max && free.length) list.push(free.shift().id);
+    SFX.select();
+    pickRefresh();
+  },
+  pickNext() {
+    SFX.select();
+    if (pickStep === 'mates') screenPick('opps');
+    else screenWorld();
+  },
+  rematch() { SFX.select(); buildFriendly(); startMatch(); },
+  newTeams() { SFX.select(); S.mode = 'friendly'; screenChars(); },
   pickChar(id) {
     S.hero = id; SFX.click();
     document.querySelectorAll('.char-tile').forEach((el) => el.classList.toggle('sel', el.dataset.arg === id));
     const btn = document.querySelector('[data-act="toWorld"]');
     if (btn) btn.textContent = t('char.go', { name: charById(id).name });
   },
-  toWorld() { SFX.select(); prefs.hero = S.hero; savePrefs(prefs); screenWorld(); },
+  toWorld() {
+    SFX.select(); prefs.hero = S.hero; savePrefs(prefs);
+    if (S.mode === 'friendly') {
+      // you can't be on both teams
+      S.mates = S.mates.filter((id) => id !== S.hero); S.opps = S.opps.filter((id) => id !== S.hero);
+      screenPick('mates');
+    } else screenWorld();
+  },
   pickWorld(w) { S.theme = w; prefs.theme = w; savePrefs(prefs); setTheme(w); SFX.select(); screenRole(); },
-  pickRole(r) { S.role = r; prefs.role = r; savePrefs(prefs); SFX.select(); buildCup(); screenLineup(); },
+  pickRole(r) { S.role = r; prefs.role = r; savePrefs(prefs); SFX.select(); if (S.mode === 'friendly') buildFriendly(); else buildCup(); screenLineup(); },
   kickoff() { SFX.whistle(); startMatch(); },
   nextMatch() { SFX.select(); startMatch(); },
   toPodium() { SFX.fanfare(); screenPodium(); },
@@ -349,7 +404,11 @@ const actions = {
   lang() { setLang(getLang() === 'en' ? 'no' : 'en'); SFX.click(); screenTitle(); },
   sound() { setMuted(!isMuted()); if (!isMuted()) SFX.click(); screenTitle(); },
   board() { SFX.select(); screenBoardView(); },
-  back(where) { SFX.click(); ({ title: screenTitle, chars: screenChars, world: screenWorld, role: screenRole })[where](); },
+  back(where) {
+    SFX.click();
+    if (where === 'chars' && S.mode === 'friendly') { screenPick('opps'); return; }
+    ({ title: screenTitle, chars: screenChars, world: screenWorld, role: screenRole, mates: () => screenPick('mates') })[where]();
+  },
   pause() {
     if (!match || match.paused) return;
     match.paused = true;
@@ -388,7 +447,8 @@ function screenTitle() {
     <div class="center-col">
       <div class="title-logo">Football<br>Blah-Blah <span class="ball">⚽</span></div>
       <div class="subtitle">${t('title.sub')}</div>
-      <button class="btn big pulse" data-act="play">${t('title.play')}</button>
+      <button class="btn big pulse" data-act="play">${t('title.quick')}</button>
+      <button class="btn blue" data-act="chooseTeams">${t('title.choose')}</button>
       ${isTouch && isPortrait() ? `<div class="rotate-tip">${t('title.rotate')}</div>` : ''}
     </div>`, 'clear');
 }
@@ -409,6 +469,52 @@ function screenChars() {
     <div class="sticky-bottom"><button class="btn big pulse" data-act="toWorld">${t('char.go', { name: esc(charById(S.hero).name) })}</button></div>`);
   const sel = el.querySelector('.char-tile.sel');
   if (sel && sel.scrollIntoView) setTimeout(() => sel.scrollIntoView({ block: 'center' }), 50);
+}
+
+let pickStep = 'mates';
+let pickRefresh = () => {};
+function screenPick(step) {
+  pickStep = step;
+  const max = step === 'mates' ? 2 : 3;
+  const list = () => (step === 'mates' ? S.mates : S.opps);
+  const blocked = (id) => id === S.hero || (step === 'opps' && S.mates.includes(id)) || (step === 'mates' && S.opps.includes(id));
+  const groups = ['Kids', 'Grown-ups', 'Pets'];
+  const grid = groups.map((g) => {
+    const cs = CHARACTERS.filter((c) => c.group === g);
+    if (!cs.length) return '';
+    return `<div class="group-title">${t(`group.${g}`)}</div><div class="char-grid">${cs.map((c) => `
+      <div class="char-tile ${blocked(c.id) ? 'blocked' : ''}" data-id="${c.id}" ${blocked(c.id) ? '' : `data-act="pickTeamChar" data-arg="${c.id}"`}>
+        <span class="badge"></span><img alt="" src="${portraitOf(c.id)}"><div class="nm">${esc(c.name)}</div></div>`).join('')}</div>`;
+  }).join('');
+  const el = show(`
+    <div class="top-left"><button class="btn white small" data-act="back" data-arg="${step === 'mates' ? 'chars' : 'mates'}">${t('back')}</button></div>
+    <h2 class="heading">${t(step === 'mates' ? 'pick.mates' : 'pick.opps')}</h2>
+    <div class="pick-teams">
+      <div class="pick-team mine ${step === 'mates' ? 'now' : ''}" style="background:${KITS[0].css}"><b>${t('pick.yourTeam')}</b><span id="mineSlots"></span></div>
+      <div class="pick-team foe ${step === 'opps' ? 'now' : ''}" style="background:${KITS[1].css}"><b>${t('pick.otherTeam')}</b><span id="oppSlots"></span></div>
+    </div>
+    <div class="char-wrap">${grid}</div>
+    <div class="sticky-bottom">
+      <button class="btn white" data-act="randomPick">🎲 ${t('pick.random')}</button>
+      <button class="btn big" id="pickNextBtn" data-act="pickNext"></button>
+    </div>`);
+  const slot = (id) => (id ? `<span class="slot"><img alt="" src="${portraitOf(id)}">${esc(charById(id).name)}</span>` : '<span class="slot empty">?</span>');
+  pickRefresh = () => {
+    const badge = (id) => (id === S.hero ? '⭐' : S.mates.includes(id) ? '💛' : S.opps.includes(id) ? '❤️' : '');
+    el.querySelectorAll('.char-tile').forEach((n) => {
+      const id = n.dataset.id;
+      n.classList.toggle('sel', list().includes(id));
+      n.querySelector('.badge').textContent = badge(id);
+    });
+    el.querySelector('#mineSlots').innerHTML = [S.hero, S.mates[0], S.mates[1]].map(slot).join('');
+    el.querySelector('#oppSlots').innerHTML = [S.opps[0], S.opps[1], S.opps[2]].map(slot).join('');
+    const ready = list().length === max;
+    const btn = el.querySelector('#pickNextBtn');
+    btn.disabled = !ready;
+    btn.classList.toggle('pulse', ready);
+    btn.textContent = ready ? t('pick.next') : t('pick.left', { n: max - list().length });
+  };
+  pickRefresh();
 }
 
 function screenWorld() {
@@ -452,10 +558,13 @@ function screenLineup() {
   show(`
     <div class="top-left"><button class="btn white small" data-act="back" data-arg="role">${t('back')}</button></div>
     <div class="center-col" style="max-width:940px">
+      ${S.mode === 'friendly' ? `
+      <h2 class="heading">${t('friendly.heading')} ${S.theme === 'circus' ? '🎪' : '🪔'}</h2>
+      <div class="teams">${teamCard(0)}<div class="vs" style="align-self:center">VS</div>${teamCard(1)}</div>` : `
       <h2 class="heading">${t('lineup.heading', { cup: t(`lineup.cup.${S.theme}`) })} ${S.theme === 'circus' ? '🎪' : '🪔'}</h2>
       <div class="subtitle">${t('lineup.sub')}</div>
       <div class="teams">${teamCard(0)}${teamCard(1)}${teamCard(2)}</div>
-      <div class="vs">${t('lineup.match', { n: 1, a: esc(teamName(0)), b: esc(teamName(1)) })}</div>
+      <div class="vs">${t('lineup.match', { n: 1, a: esc(teamName(0)), b: esc(teamName(1)) })}</div>`}
       <div style="height:96px"></div>
     </div>
     <div class="sticky-bottom"><button class="btn big pulse" data-act="kickoff">${t('lineup.kickoff')}</button></div>`);
@@ -493,7 +602,7 @@ function updateHud() {
 function startMatch() {
   endMatchCleanup();
   S.matchNo++;
-  S.opp = S.matchNo === 1 ? 1 : 2;
+  S.opp = S.mode === 'friendly' || S.matchNo === 1 ? 1 : 2;
   setTheme(S.theme);
   clearScreen();
   clearPodium();
@@ -511,6 +620,7 @@ function startMatch() {
   cam.mode = 'match';
   cam.snap = true;
   input.setEnabled(true);
+  musicStop();
   crowdStart();
   updateHud();
 }
@@ -548,6 +658,15 @@ function onMatchEvent(type, data) {
 }
 
 function onMatchEnded(res) {
+  if (S.mode === 'friendly') {
+    crowdStop();
+    musicStart();
+    input.setEnabled(false);
+    input.clearHints();
+    controlsEl.classList.add('hidden');
+    screenFriendlyResult(res);
+    return;
+  }
   const opp = S.opp;
   S.results.push({ a: 0, b: opp, ga: res.score[0], gb: res.score[1] });
   for (const sc of res.scorers) if (sc.charId) S.goals[sc.charId] = (S.goals[sc.charId] || 0) + 1;
@@ -556,6 +675,7 @@ function onMatchEnded(res) {
   let other = null;
   if (S.matchNo === 1) other = simulateOtherMatch();
   crowdStop();
+  musicStart();
   input.setEnabled(false);
   input.clearHints();
   controlsEl.classList.add('hidden');
@@ -568,6 +688,7 @@ function endMatchCleanup() {
     match = null;
   }
   crowdStop();
+  musicStart();
   input.setEnabled(false);
   input.clearHints();
   controlsEl.classList.add('hidden');
@@ -781,6 +902,31 @@ function screenTrophy() {
   });
 }
 
+function screenFriendlyResult(res) {
+  hudEl.classList.add('hidden');
+  labelsEl.innerHTML = '';
+  const [a, b] = res.score;
+  const won = a > b, draw = a === b;
+  if (won) { SFX.fanfare(); particles.confetti(0, 3, 0, 200, 4); } else if (draw) SFX.select(); else SFX.sad();
+  const scorers = res.scorers.filter((x) => x.charId && x.team === 0).map((x) => charById(x.charId).name);
+  const count = {};
+  scorers.forEach((n) => { count[n] = (count[n] || 0) + 1; });
+  const scorerLine = Object.entries(count).map(([n, k]) => `${esc(n)} ${'⚽'.repeat(k)}`).join(' • ');
+  show(`
+    <div class="center-col">
+      <div class="msg-big">${won ? t('friendly.won') : draw ? t('friendly.draw') : t('friendly.lost')}</div>
+      <div class="score-big">${a} – ${b}</div>
+      <div class="subtitle">${esc(teamName(0))} vs ${esc(teamName(1))}</div>
+      ${scorerLine ? `<div class="panel" style="width:auto">${scorerLine}</div>` : ''}
+      <div class="subtitle">🪙 +${res.coins} kr</div>
+      <div class="row">
+        <button class="btn big pulse" data-act="rematch">${t('friendly.again')}</button>
+        <button class="btn blue" data-act="newTeams">${t('friendly.newTeams')}</button>
+        <button class="btn white" data-act="title">🏠</button>
+      </div>
+    </div>`);
+}
+
 // ── Hero showcase (3D) ──────────────────────────────────────────────────
 function clearShowcase() {
   if (!showcase) return;
@@ -982,5 +1128,5 @@ window.__fb = {
   get match() { return match; },
   setTimeScale(k) { timeScale = k; },
   screens: { screenTitle, screenChars, screenWorld, screenRole, screenLineup, screenPodium, screenTrophy, screenLeaderboard, screenShop, screenPrizes },
-  startMatch, cam,
+  startMatch, cam, audioState,
 };
