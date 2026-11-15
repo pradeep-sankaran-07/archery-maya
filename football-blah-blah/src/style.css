@@ -476,3 +476,23 @@ input.name {
   .item .n { font-size: 13px; min-height: 28px; }
   .wallet { font-size: 20px; padding: 4px 14px; }
 }
+
+/* Choose teams */
+.char-tile { position: relative; }
+.char-tile .badge:empty { display: none; }
+.char-tile .badge { position: absolute; top: -6px; right: -4px; font-size: 22px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+.char-tile.blocked { opacity: 0.45; cursor: default; }
+.pick-teams { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 2px 0 10px; width: 100%; }
+.pick-team { border-radius: 16px; padding: 6px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border: 3px solid rgba(255,255,255,.6); color: var(--purple); }
+.pick-team.foe { color: #fff; }
+.pick-team.now { border-color: #fff; box-shadow: 0 0 0 3px var(--purple), 0 4px 12px rgba(0,0,0,.35); }
+.pick-team b { font-size: 15px; margin-right: 2px; }
+.pick-team .slot { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,.85); color: var(--purple); border-radius: 12px; padding: 2px 8px 2px 2px; font-weight: 700; font-size: 14px; }
+.pick-team .slot img { width: 26px; height: 26px; border-radius: 50%; background: #9bdcf2; }
+.pick-team .slot.empty { padding: 4px 12px; opacity: .6; }
+.btn[disabled] { opacity: .55; filter: grayscale(.4); }
+@media (max-height: 500px) {
+  .pick-teams { margin: 0 0 4px; gap: 6px; }
+  .pick-team { padding: 3px 6px; }
+  .pick-team .slot img { width: 22px; height: 22px; }
+}

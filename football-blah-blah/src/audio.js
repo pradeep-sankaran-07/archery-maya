@@ -32,7 +32,7 @@ export function setMuted(m) {
   if (master) master.gain.value = m ? 0 : 0.5;
 }
 
-function tone(freq, dur = 0.12, type = 'sine', vol = 0.4, { sweep = 0, delay = 0, attack = 0.01 } = {}) {
+function tone(freq, dur = 0.12, type = 'sine', vol = 0.4, { sweep = 0, delay = 0, attack = 0.01, dest = null } = {}) {
   if (!ctx || muted) return;
   const t0 = ctx.currentTime + delay;
   const o = ctx.createOscillator();
@@ -43,11 +43,11 @@ function tone(freq, dur = 0.12, type = 'sine', vol = 0.4, { sweep = 0, delay = 0
   g.gain.setValueAtTime(0.0001, t0);
   g.gain.linearRampToValueAtTime(vol, t0 + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g); g.connect(master);
+  o.connect(g); g.connect(dest || master);
   o.start(t0); o.stop(t0 + dur + 0.05);
 }
 
-function noise(dur = 0.2, vol = 0.3, { type = 'bandpass', freq = 1000, q = 1, delay = 0, attack = 0.01, sweepTo = 0 } = {}) {
+function noise(dur = 0.2, vol = 0.3, { type = 'bandpass', freq = 1000, q = 1, delay = 0, attack = 0.01, sweepTo = 0, dest = null } = {}) {
   if (!ctx || muted) return;
   const t0 = ctx.currentTime + delay;
   const src = ctx.createBufferSource();
@@ -59,18 +59,32 @@ function noise(dur = 0.2, vol = 0.3, { type = 'bandpass', freq = 1000, q = 1, de
   g.gain.setValueAtTime(0.0001, t0);
   g.gain.linearRampToValueAtTime(vol, t0 + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  src.connect(f); f.connect(g); g.connect(master);
+  src.connect(f); f.connect(g); g.connect(dest || master);
   src.start(t0, Math.random()); src.stop(t0 + dur + 0.05);
 }
 
 export const SFX = {
   click() { tone(660, 0.07, 'square', 0.15); },
   select() { tone(540, 0.07, 'sine', 0.3); tone(820, 0.1, 'sine', 0.28, { delay: 0.06 }); },
+  // A proper "thwack": a low thump plus a mid "pock" you can hear on phone speakers.
   kick(power = 1) {
-    tone(150, 0.12, 'sine', 0.6 * power, { sweep: -90 });
-    noise(0.06, 0.25 * power, { type: 'lowpass', freq: 1800 });
+    tone(120, 0.16, 'sine', 0.7 * power, { sweep: -70 });
+    tone(420, 0.07, 'triangle', 0.45 * power, { sweep: -220 });
+    noise(0.05, 0.5 * power, { type: 'bandpass', freq: 1700, q: 0.9 });
+    noise(0.12, 0.18 * power, { type: 'lowpass', freq: 700, delay: 0.01 });
   },
-  pass() { tone(200, 0.08, 'sine', 0.35, { sweep: -80 }); noise(0.04, 0.12, { type: 'lowpass', freq: 1500 }); },
+  pass() {
+    tone(160, 0.1, 'sine', 0.45, { sweep: -70 });
+    tone(520, 0.05, 'triangle', 0.25, { sweep: -200 });
+    noise(0.04, 0.3, { type: 'bandpass', freq: 2000, q: 1 });
+  },
+  // soft foot-on-ball taps while dribbling
+  touch(vol = 1) {
+    tone(300 + Math.random() * 60, 0.05, 'triangle', 0.16 * vol, { sweep: -120 });
+    noise(0.03, 0.12 * vol, { type: 'bandpass', freq: 1500 + Math.random() * 500, q: 1.2 });
+  },
+  net() { noise(0.55, 0.35, { type: 'bandpass', freq: 2600, q: 0.6, attack: 0.02, sweepTo: 900 }); tone(90, 0.25, 'sine', 0.3, { sweep: -30 }); },
+  tackle() { tone(140, 0.09, 'sine', 0.45, { sweep: -60 }); noise(0.08, 0.3, { type: 'lowpass', freq: 1200 }); },
   header() { tone(260, 0.1, 'triangle', 0.4, { sweep: -120 }); tone(520, 0.06, 'sine', 0.2, { delay: 0.02 }); },
   bounce() { tone(110, 0.08, 'sine', 0.18, { sweep: -40 }); },
   post() { tone(1250, 0.5, 'triangle', 0.25); tone(1870, 0.4, 'sine', 0.12); },
@@ -93,8 +107,9 @@ export const SFX = {
     o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
   },
   cheer() {
-    noise(2.2, 0.35, { type: 'bandpass', freq: 900, q: 0.6, attack: 0.25 });
-    noise(1.8, 0.22, { type: 'bandpass', freq: 2200, q: 0.8, attack: 0.2, delay: 0.1 });
+    crowdRoar(3.5);
+    noise(2.6, 0.4, { type: 'bandpass', freq: 900, q: 0.6, attack: 0.25 });
+    noise(2.2, 0.26, { type: 'bandpass', freq: 2200, q: 0.8, attack: 0.2, delay: 0.1 });
     for (let i = 0; i < 6; i++) tone(700 + Math.random() * 500, 0.25, 'triangle', 0.05, { delay: 0.2 + Math.random() * 1.2, sweep: 200 });
   },
   ooh() { noise(1.0, 0.22, { type: 'bandpass', freq: 500, q: 1.2, attack: 0.15, sweepTo: 300 }); },
@@ -135,19 +150,115 @@ export const SFX = {
   drumroll(dur = 1.2) { for (let i = 0; i < dur * 22; i++) noise(0.05, 0.12, { type: 'bandpass', freq: 200, delay: i / 22 }); },
 };
 
-/** Soft looping crowd murmur during matches. */
+/** Stadium crowd during matches: a murmur that breathes, swells when the ball
+ *  is near a goal, roars for goals, and claps along now and then. */
+let crowdLevel = 0.25, roarUntil = 0;
+export function crowdExcite(level) { crowdLevel = Math.max(0, Math.min(1, level)); }
+function crowdRoar(sec) { if (ctx) roarUntil = ctx.currentTime + sec; }
 export function crowdStart() {
   if (!ctx || crowd) return;
-  const src = ctx.createBufferSource();
-  src.buffer = noiseBuf; src.loop = true;
-  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 0.5;
-  const g = ctx.createGain(); g.gain.value = 0.045;
-  src.connect(f); f.connect(g); g.connect(master);
-  src.start();
-  crowd = { src, g };
+  const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(master);
+  const layer = (freq, q, vol) => {
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); g.gain.value = vol;
+    src.connect(f); f.connect(g); g.connect(bus);
+    src.start(0, Math.random() * 1.5);
+    return { src, g, base: vol };
+  };
+  const layers = [layer(420, 0.7, 1.0), layer(1100, 0.9, 0.6), layer(2400, 1.2, 0.25)];
+  let nextChant = ctx.currentTime + 8 + Math.random() * 8;
+  const tick = () => {
+    if (!crowd) return;
+    const now = ctx.currentTime;
+    const roar = now < roarUntil ? 1 : 0;
+    const lvl = Math.max(crowdLevel, roar);
+    // murmur breathes a little; louder and brighter when exciting
+    const target = (0.06 + lvl * 0.16) * (0.85 + Math.random() * 0.3);
+    bus.gain.setTargetAtTime(muted ? 0 : target, now, 0.35);
+    layers[2].g.gain.setTargetAtTime(layers[2].base * (0.5 + lvl * 1.5), now, 0.4);
+    if (now > nextChant && !roar) {
+      clapChant(now + 0.1);
+      nextChant = now + 16 + Math.random() * 14;
+    }
+  };
+  const timer = setInterval(tick, 250);
+  tick();
+  crowd = { layers, bus, timer };
+}
+function clapChant(t0) {
+  // "clap clap, clap-clap-clap" x2, many hands slightly out of sync
+  const beats = [0, 0.42, 0.84, 1.05, 1.26];
+  for (let r = 0; r < 2; r++) {
+    for (const b of beats) {
+      for (let h = 0; h < 7; h++) {
+        noise(0.045, 0.05, { type: 'bandpass', freq: 1300 + Math.random() * 900, q: 1.4, delay: t0 - ctx.currentTime + r * 1.9 + b + Math.random() * 0.03 });
+      }
+    }
+  }
 }
 export function crowdStop() {
   if (!crowd) return;
-  try { crowd.src.stop(); } catch { /* ignore */ }
-  crowd = null;
+  clearInterval(crowd.timer);
+  const c = crowd; crowd = null;
+  try { c.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.2); } catch { /* ignore */ }
+  setTimeout(() => { c.layers.forEach((l) => { try { l.src.stop(); } catch { /* ignore */ } }); }, 800);
+}
+
+/** Gentle, cheerful background music for the menus (synthesized, loops). */
+let music = null;
+const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12);
+// C – G – Am – F, then C – F – G – C
+const CHORDS = [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60], [60, 64, 67], [53, 57, 60], [55, 59, 62], [60, 64, 67]];
+const ARP = [0, 1, 2, 1, 0, 2, 1, 2];
+const MELODY = [ // one note per beat (-1 = rest), simple and sing-song
+  76, 74, 72, 74, 74, 71, 67, -1, 72, 74, 76, 72, 77, 76, 74, -1,
+  76, 79, 77, 76, 72, 74, 76, 77, 74, 72, 71, 74, 72, -1, -1, -1,
+];
+export function musicStart() {
+  if (!ctx || music) return;
+  const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(master);
+  bus.gain.setTargetAtTime(1, ctx.currentTime, 0.8);
+  const spb = 60 / 100; // 100 bpm
+  let step = 0; // eighth notes
+  let nextT = ctx.currentTime + 0.15;
+  const timer = setInterval(() => {
+    if (!music || muted) { nextT = ctx.currentTime + 0.1; return; }
+    while (nextT < ctx.currentTime + 0.35) {
+      const bar = Math.floor(step / 8) % CHORDS.length;
+      const ch = CHORDS[bar];
+      const e = step % 8;
+      const d = Math.max(0, nextT - ctx.currentTime);
+      if (e === 0) {
+        // soft pad + bass for the whole bar
+        ch.forEach((n) => tone(NOTE(n), spb * 4, 'triangle', 0.022, { delay: d, attack: 0.25, dest: bus }));
+        tone(NOTE(ch[0] - 12), spb * 1.8, 'triangle', 0.07, { delay: d, attack: 0.02, dest: bus });
+      }
+      if (e === 4) tone(NOTE(ch[0] - 12), spb * 1.8, 'triangle', 0.06, { delay: d, attack: 0.02, dest: bus });
+      // plucky arpeggio
+      tone(NOTE(ch[ARP[e]] + 12), spb * 0.45, 'sine', 0.035, { delay: d, attack: 0.005, dest: bus });
+      // light shaker on the off-beats
+      if (e % 2 === 1) noise(0.05, 0.012, { type: 'highpass', freq: 6000, delay: d, dest: bus });
+      // melody on the beats
+      if (e % 2 === 0) {
+        const m = MELODY[(Math.floor(step / 2)) % MELODY.length];
+        if (m > 0) tone(NOTE(m), spb * 0.9, 'triangle', 0.045, { delay: d, attack: 0.02, dest: bus });
+      }
+      step++;
+      nextT += spb / 2;
+    }
+  }, 90);
+  music = { bus, timer };
+}
+export function musicStop() {
+  if (!music) return;
+  const m = music; music = null;
+  clearInterval(m.timer);
+  try { m.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.3); } catch { /* ignore */ }
+  setTimeout(() => { try { m.bus.disconnect(); } catch { /* ignore */ } }, 1500);
+}
+
+/** For tests: what's playing right now. */
+export function audioState() {
+  return { ctx: ctx ? ctx.state : 'none', music: !!music, crowd: !!crowd, crowdLevel, muted };
 }

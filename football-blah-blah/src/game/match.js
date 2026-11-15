@@ -5,7 +5,7 @@ import {
   buildElephant, buildCannon, buildBalloons, buildCircusNet,
 } from '../three/models.js';
 import { HL, HW, GOAL_HW, GOAL_H, GOAL_D, FENCE_X, FENCE_Z, BOX_D, BOX_HW, GRAVITY, END_WALL } from './constants.js';
-import { SFX } from '../audio.js';
+import { SFX, crowdExcite } from '../audio.js';
 import { t } from '../i18n.js';
 import { COINS } from '../data.js';
 
@@ -188,9 +188,14 @@ export class Match {
     this.time += dt;
     this.stateT -= dt;
 
+    if (this.state !== 'play') {
+      // Taps during the goal celebration / "Ready…" must not fire a shot when play starts.
+      this.input.take('kick'); this.input.take('pass');
+    }
     if (this.state === 'kickoff') {
       if (this.stateT <= 0) {
         this.state = 'play';
+        this.playT = 0;
         SFX.whistle();
         this.emit('banner', { big: t('banner.go'), small: '', ms: 700 });
         if (this.firstMatch && !this.saidGo) {
@@ -202,6 +207,7 @@ export class Match {
       this.placeOwnedBall();
       this.updateButtons();
     } else if (this.state === 'play') {
+      this.playT = (this.playT || 0) + dt;
       this.timeLeft -= dt;
       if (this.timeLeft <= 0) {
         this.timeLeft = 0;
@@ -219,6 +225,7 @@ export class Match {
     }
 
     this.updateShotCam(dt);
+    this.updateCrowdSound(dt);
     this.updateAnimal(dt);
     this.updateVisuals(dt);
   }
@@ -287,7 +294,11 @@ export class Match {
     }
 
     const b = this.ball;
-    if (kick) {
+    // Right after kickoff, SHOOT just starts you running with the ball (no surprise shot from the middle).
+    const kickoffGrace = this.playT < 1.2 && b.owner === h && Math.abs(h.pos.x) < 3 && !ride;
+    if (kick && kickoffGrace) {
+      if (!this.tips.kickoff) { this.tips.kickoff = true; this.toast(t('toast.kickoffRun'), 'kickoffRun', 0); }
+    } else if (kick) {
       if (ride && b.owner === h) {
         this.superShot(h);
       } else if (b.owner === h) {
@@ -471,6 +482,7 @@ export class Match {
       } else if (presser === p) {
         target = V().copy(own.pos).addScaledVector(own.vel, 0.3);
         speed = p.team === 1 ? (striker ? 5.6 : 5.4) : (striker ? 5.4 : 4.6);
+        if (own.human) speed = 5.0; // a bit slower than you, so you can run away with the ball
       } else {
         // Cover: stand on the line between the ball and our goal.
         const k = 0.45;
@@ -681,6 +693,7 @@ export class Match {
           return;
         }
         b.inNet = s;
+        SFX.net();
         if (this.state === 'play') this.goalScored(s > 0 ? 0 : 1);
         return;
       }
@@ -832,18 +845,21 @@ export class Match {
         // You only have to bump into the player (or touch the ball) to win it.
         const heroTouch = p.human && o.role !== 'gk' && (d < 1.15 || dist2(p.pos, b.pos) < 0.95);
         if (d < 1.0 || heroTouch) {
-          p.tackle += dt;
+          // Taking the ball off YOU is hard: while you keep running it hardly ever
+          // works; only if you stand still with someone right on you.
+          const heroMoving = o.human && flat(o.vel) > 1.5;
+          p.tackle += dt * (heroMoving ? 0.2 : 1);
           let need = 0.4;
           if (p.human) need = 0.05;
-          else if (o.human) need = this.role === 'striker' ? 0.6 : 0.45;
+          else if (o.human) need = 1.2;
           else if (p.team === 0) need = this.role === 'striker' ? 0.9 : 1.3;
           else need = 0.55;
           const guard = p.human ? o.protect > 0.3 : o.protect > 0;
           if (p.tackle >= need && !guard) {
             this.changeOwner(p);
             o.noTouch = p.human ? 0.9 : 0.6;
-            SFX.pass();
-            if (o.human) this.toast(t('toast.stolen'), 'stolen', 6);
+            SFX.tackle();
+            if (o.human) { this.toast(t('toast.stolen'), 'stolen', 6); this.stats.lost = (this.stats.lost || 0) + 1; }
             if (p.human) {
               o.anim.dizzy = 0.5;
               this.stats.steals = (this.stats.steals || 0) + 1;
@@ -869,7 +885,8 @@ export class Match {
       const maxY = p.human ? 1.0 : 0.8;
       if (d > r || b.pos.y > maxY) continue;
       if (speed > 15 && b.intended !== p) continue;
-      if (p.team === 1 && b.intended && b.intended.team === 0 && speed > 7) continue;
+      // Passes between you and your teammates get through unless the ball has nearly stopped.
+      if (p.team === 1 && b.intended && b.intended.team === 0 && speed > 2) continue;
       if (d < bestD) { best = p; bestD = d; }
     }
     if (best) {
@@ -885,7 +902,7 @@ export class Match {
     b.kick = null;
     b.intended = null;
     b.lastTouch = p;
-    p.protect = p.human ? 1.3 : (p.giveGo ? 1.2 : 0.6);
+    p.protect = p.human ? 2.0 : (p.giveGo ? 1.2 : 0.6);
     p.dribbleT = 0;
     p.holdT = 0;
     p.holdFor = null;
@@ -1010,6 +1027,27 @@ export class Match {
       : sc.outcome ? sc.outT > 0.45
       : sc.t > 3.5;
     if (done || this.state === 'ended' || this.state === 'kickoff') this.shotCam = null;
+  }
+
+  updateCrowdSound(dt) {
+    this.crowdT = (this.crowdT || 0) - dt;
+    if (this.crowdT <= 0) {
+      this.crowdT = 0.25;
+      const bx = Math.abs(this.ball.pos.x);
+      let lvl = 0.2 + Math.max(0, (bx - 8) / (HL - 8)) * 0.5; // louder near the goals
+      if (this.shotCam) lvl = 1;
+      if (this.state !== 'play') lvl = this.state === 'goal' ? 1 : 0.2;
+      crowdExcite(lvl);
+    }
+    // little foot-on-ball taps while someone dribbles (louder for you)
+    const o = this.ball.owner;
+    if (o && this.state === 'play' && !o.anim.holding && !o.anim.flying && flat(o.vel) > 1.5) {
+      o.touchT = (o.touchT || 0) - dt;
+      if (o.touchT <= 0) {
+        o.touchT = 0.36;
+        SFX.touch(o.human ? 1 : 0.35);
+      }
+    }
   }
 
   /** Game-speed factor for slow motion (1 = normal). */
