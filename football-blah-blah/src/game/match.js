@@ -81,6 +81,16 @@ export class Match {
           noTouch: 0, protect: 0, tackle: 0, flee: 0, windup: 0, holdT: 0, dribbleT: 0, passCool: 0,
           flyY: 0, gkSave: null, height: model.height,
         };
+        if (!human) {
+          // A ring in the team colour under every player, so teams are easy to tell apart.
+          p.teamRing = new THREE.Mesh(
+            new THREE.RingGeometry(0.4, 0.62, 28),
+            new THREE.MeshBasicMaterial({ color: team.kit.jersey, transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide }),
+          );
+          p.teamRing.rotation.x = -Math.PI / 2;
+          p.teamRing.renderOrder = 2;
+          this.group.add(p.teamRing);
+        }
         this.players.push(p);
       });
     });
@@ -167,7 +177,7 @@ export class Match {
     kicker.protect = 1.5;
     this.state = 'kickoff';
     this.stateT = first ? 2.2 : 1.4;
-    this.emit('banner', { big: t('banner.ready'), small: '', ms: first ? 1200 : 800 });
+    this.emit('banner', { big: t('banner.ready'), small: first ? t('banner.yourTeam', { opp: t(`kit.${this.teams[1].kit.name}`) }) : '', ms: first ? 2000 : 800 });
     this.powerActive = null;
     this.hideRide();
   }
@@ -200,6 +210,7 @@ export class Match {
         this.updatePlay(dt);
       }
     } else if (this.state === 'goal') {
+      this.goalT += dt;
       this.updateBallPhysics(dt);
       this.updateCelebrate(dt);
       if (this.stateT <= 0) this.resetKickoff(this.lastGoalTeam === 0 ? 1 : 0);
@@ -207,6 +218,7 @@ export class Match {
       this.updateCelebrate(dt);
     }
 
+    this.updateShotCam(dt);
     this.updateAnimal(dt);
     this.updateVisuals(dt);
   }
@@ -300,7 +312,7 @@ export class Match {
     if (b.owner === h) return 'shot';
     if (h.noTouch > 0 || h.anim.headerT > 0 || this.cutscene) return null;
     if (b.owner && b.owner.team === 1 && h.tackleCool > 0) return null;
-    if (b.owner && b.owner.team === 1 && dist2(b.owner.pos, h.pos) < 1.6) return 'tackle';
+    if (b.owner && b.owner.team === 1 && dist2(b.owner.pos, h.pos) < 1.9) return 'tackle';
     if (b.owner) return null;
     const d = dist2(b.pos, h.pos);
     if (b.pos.y > 2.6 && b.kick && b.kick.type === 'sky' && d < 10) return 'sky';
@@ -371,11 +383,14 @@ export class Match {
           const h = this.hero;
           speed = 5.4;
           target = V(clamp(p.pos.x + 6, -HL + 4, HL - 9), 0, p.pos.z * 0.9);
-          const hold = p.holdFor ?? (p.holdFor = rand(0.5, 1.0));
+          // Pass it back to the hero quickly (straight away if the hero just passed to us).
+          const hold = p.holdFor ?? (p.holdFor = p.giveGo ? rand(0.2, 0.35) : rand(0.35, 0.7));
           const heroFree = h && !h.anim.flying;
-          if (p.dribbleT > hold && heroFree && p.passCool <= 0) {
+          if (p.dribbleT > hold && heroFree && (p.passCool <= 0 || p.giveGo)) {
             p.holdFor = null;
-            this.teammatePassToHero(p);
+            const quick = p.giveGo;
+            p.giveGo = false;
+            this.teammatePassToHero(p, quick);
             return;
           }
         } else {
@@ -384,12 +399,12 @@ export class Match {
           target = V(goalX - attackDir * 9, 0, clamp(p.pos.z * 0.6, -6, 6));
           const mate = this.players.find((q) => q.team === p.team && q.role === 'field' && q !== p);
           const dGoal = Math.abs(goalX - p.pos.x);
-          if (dGoal < 13 && Math.abs(p.pos.z) < 9) { this.aiShoot(p); return; }
+          if (dGoal < 16 && Math.abs(p.pos.z) < 9) { this.aiShoot(p); return; }
           if (mate && p.dribbleT > 1.6 && p.passCool <= 0 && Math.random() < dt * 1.2) { this.pass(p, mate, 'ground'); return; }
         }
       } else {
         // Opponent attacking our goal
-        speed = striker ? 5.3 : 5.0;
+        speed = striker ? 5.3 : 5.4;
         if (p.windup > 0) {
           p.windup -= dt;
           p.vel.multiplyScalar(0.8);
@@ -403,12 +418,12 @@ export class Match {
           if (q.team === p.team || q.role === 'gk') continue;
           const away = V().subVectors(p.pos, q.pos); away.y = 0;
           const d = away.length();
-          if (d < 3.5 && d > 0.01) dir.addScaledVector(away.normalize(), (3.5 - d) / 3.5 * 1.6);
+          if (d < 3.5 && d > 0.01) dir.addScaledVector(away.normalize(), (3.5 - d) / 3.5 * (q.human ? 0.7 : 1.6));
         }
         dir.normalize();
         target.copy(p.pos).addScaledVector(dir, 3);
         const dGoal = Math.abs(goalX - p.pos.x);
-        const shootRange = striker ? 18 : 19;
+        const shootRange = striker ? 18 : 22;
         if (dGoal < shootRange && Math.abs(p.pos.z) < 9 && p.dribbleT > 0.6) {
           p.windup = this.role === 'goalie' ? 0.75 : 0.45;
           if (this.role === 'goalie') this.prepareShotPreview(p);
@@ -417,7 +432,7 @@ export class Match {
         const pressure = this.players.some((q) => q.team !== p.team && q.role === 'field' && dist2(q.pos, p.pos) < 2.6);
         const mate = this.players.find((q) => q.team === p.team && q.role === 'field' && q !== p);
         const mateFree = mate && !this.players.some((q) => q.team !== p.team && q.role === 'field' && dist2(q.pos, mate.pos) < 2.5);
-        if (pressure && mateFree && p.dribbleT > 0.3 && p.passCool <= 0 && Math.random() < dt * 3) { this.pass(p, mate, 'ground'); return; }
+        if (pressure && mateFree && p.dribbleT > 0.9 && p.passCool <= 0 && Math.random() < dt * 1.2) { this.pass(p, mate, 'ground'); return; }
       }
     } else if (!own || own.role === 'gk') {
       // Loose ball (or a keeper holding it): nearest player of each team chases.
@@ -814,18 +829,27 @@ export class Match {
         if (p.team === o.team || p.role === 'gk' || p.flee > 0 || p.noTouch > 0) continue;
         if (o.anim.flying) continue;
         const d = dist2(p.pos, o.pos);
-        if (d < 1.0) {
+        // You only have to bump into the player (or touch the ball) to win it.
+        const heroTouch = p.human && o.role !== 'gk' && (d < 1.15 || dist2(p.pos, b.pos) < 0.95);
+        if (d < 1.0 || heroTouch) {
           p.tackle += dt;
           let need = 0.4;
-          if (o.human) need = this.role === 'striker' ? 0.6 : 0.45;
-          else if (p.human) need = 0.7;
-          else if (p.team === 0) need = this.role === 'striker' ? 0.9 : 1.0;
+          if (p.human) need = 0.05;
+          else if (o.human) need = this.role === 'striker' ? 0.6 : 0.45;
+          else if (p.team === 0) need = this.role === 'striker' ? 0.9 : 1.3;
           else need = 0.55;
-          if (p.tackle >= need && o.protect <= 0) {
+          const guard = p.human ? o.protect > 0.3 : o.protect > 0;
+          if (p.tackle >= need && !guard) {
             this.changeOwner(p);
-            o.noTouch = 0.6;
+            o.noTouch = p.human ? 0.9 : 0.6;
             SFX.pass();
             if (o.human) this.toast(t('toast.stolen'), 'stolen', 6);
+            if (p.human) {
+              o.anim.dizzy = 0.5;
+              this.stats.steals = (this.stats.steals || 0) + 1;
+              this.fx.sparkle(b.pos.x, 0.5, b.pos.z, 0xffd23f, 12);
+              if (this.stats.steals <= 3 || Math.random() < 0.25) this.toast(t('toast.gotIt'), 'gotIt', 2);
+            }
             p.tackle = 0;
           }
         } else p.tackle = Math.max(0, p.tackle - dt * 2);
@@ -861,7 +885,7 @@ export class Match {
     b.kick = null;
     b.intended = null;
     b.lastTouch = p;
-    p.protect = p.human ? 0.9 : 0.6;
+    p.protect = p.human ? 1.3 : (p.giveGo ? 1.2 : 0.6);
     p.dribbleT = 0;
     p.holdT = 0;
     p.holdFor = null;
@@ -871,11 +895,11 @@ export class Match {
   trySteal(h) {
     const o = this.ball.owner;
     if (!o || o.team === h.team) return;
-    if (dist2(o.pos, h.pos) < 1.6) {
+    if (dist2(o.pos, h.pos) < 1.9) {
       // lunge
       h.anim.kickT = 0.3;
       h.tackleCool = 0.8;
-      if (o.role !== 'gk' && Math.random() < 0.45) {
+      if (o.role !== 'gk' && Math.random() < 0.85) {
         this.changeOwner(h);
         o.noTouch = 0.8;
         o.anim.dizzy = 0.6;
@@ -931,7 +955,7 @@ export class Match {
       pGoal = d < 9 ? 0.5 : d < 15 ? 0.38 : d < 22 ? 0.24 : 0.1;
       pGoal *= 1 - Math.min(0.4, angle * 0.4);
       if (kind === 'first') pGoal *= 0.95;
-      if (!p.human) pGoal = 0.5;
+      if (!p.human) pGoal = 0.55;
     } else {
       pGoal = 0.42;
     }
@@ -964,6 +988,50 @@ export class Match {
       if (kind === 'super') { keeper.gkSave.willSave = false; keeper.gkSave.targetZ = -Math.sign(tz) * 2.2; }
     }
     if (keeper && keeper.human && !this.shotPreview) this.prepareShotPreview(p, { tz, ty });
+    // Close-up camera + slow motion for our shots, and for shots at you in goalie mode.
+    if (this.state === 'play' && (p.team === 0 || (keeper && keeper.human))) {
+      this.shotCam = { t: 0, side: p.team === 0 ? 1 : -1, incoming: p.team !== 0, outcome: null, outT: 0, kick: b.kick };
+    }
+  }
+
+  updateShotCam(dt) {
+    const sc = this.shotCam;
+    if (!sc) return;
+    sc.t += dt;
+    const b = this.ball;
+    if (!sc.outcome) {
+      if (this.state === 'goal') sc.outcome = 'goal';
+      else if (b.kick !== sc.kick) sc.outcome = b.owner && b.owner.role !== 'gk' ? 'blocked' : 'save';
+      else if (b.kick.done) sc.outcome = 'miss';
+    }
+    if (sc.outcome) sc.outT += dt;
+    const done = sc.outcome === 'goal' ? (this.state !== 'goal' || this.goalT > 1.1)
+      : sc.outcome === 'save' ? sc.outT > 0.7
+      : sc.outcome ? sc.outT > 0.45
+      : sc.t > 3.5;
+    if (done || this.state === 'ended' || this.state === 'kickoff') this.shotCam = null;
+  }
+
+  /** Game-speed factor for slow motion (1 = normal). */
+  get slowmo() {
+    if (this.state === 'goal' && this.slowGoal) {
+      const g = this.goalT;
+      return g < 0.7 ? 0.3 : g < 1.1 ? 0.3 + ((g - 0.7) / 0.4) * 0.7 : 1;
+    }
+    const sc = this.shotCam;
+    if (!sc || this.state !== 'play') return 1;
+    if (sc.outcome) return sc.outT < 0.5 ? 0.4 : 1;
+    const b = this.ball;
+    const toLine = Math.abs(sc.side * HL - b.pos.x);
+    if (toLine < 8) return sc.incoming ? 0.45 : 0.32;
+    return 1;
+  }
+
+  /** Which goal the camera should show close up: 1 = theirs, -1 = ours, 0 = none. */
+  camGoal() {
+    if (this.state === 'goal' && this.slowGoal && this.goalT < 1.1) return this.lastGoalTeam === 0 ? 1 : -1;
+    if (this.shotCam && this.state === 'play') return this.shotCam.side;
+    return 0;
   }
 
   doHeader(h) {
@@ -1074,6 +1142,7 @@ export class Match {
     this.release(from, 0.4);
     from.passCool = 1.0;
     from.anim.kickT = 0.3;
+    if (from.human && to.team === from.team && !to.human) to.giveGo = true;
     let target;
     if (type === 'ground') {
       const lead = to.human ? 0.45 : 0.3;
@@ -1108,10 +1177,17 @@ export class Match {
     b.intendedT = tFly + 1.2;
   }
 
-  teammatePassToHero(p) {
+  teammatePassToHero(p, quick = false) {
     const h = this.hero;
     const toGoal = HL - h.pos.x;
     const r = Math.random();
+    if (quick) {
+      // Give-and-go: straight back to your feet.
+      this.pass(p, h, 'ground');
+      this.passBacks = (this.passBacks || 0) + 1;
+      if (this.passBacks <= 2 || Math.random() < 0.3) this.toast(t('toast.passBack', { name: p.char.name }), 'passBack', 4);
+      return;
+    }
     // Sky ball: Maya's flying-carpet idea. Not too often, and only from midfield-ish.
     if (this.skyCooldown <= 0 && toGoal < 30 && toGoal > 8 && r < (this.tips.sky ? 0.25 : 0.5)) {
       this.skyCooldown = 18;
@@ -1151,11 +1227,10 @@ export class Match {
       if (p.human) {
         this.stats.saves++;
         this.addCoins(COINS.save, p);
-        this.toast(t('toast.save'), 'save', 0);
-        SFX.cheer();
-        this.opts.stadium.crowd.userData.cheer();
+        this.heroSaveFx(p);
       } else if (p.team === 1) {
-        this.toast(t('toast.saved'), 'saved', 3);
+        this.toast(t('toast.savedBy', { name: p.char.name }), 'saved', 2);
+        this.fx.sparkle(b.pos.x, b.pos.y, b.pos.z, 0xffffff, 18);
         SFX.groan();
       }
     }
@@ -1169,7 +1244,8 @@ export class Match {
     p.noTouch = 0.6;
     p.gkSave = null;
     SFX.save();
-    if (p.team === 1) { this.toast(t('toast.saved'), 'saved', 3); SFX.groan(); }
+    this.fx.sparkle(b.pos.x, b.pos.y, b.pos.z, 0xffffff, 18);
+    if (p.team === 1) { this.toast(t('toast.savedBy', { name: p.char.name }), 'saved', 2); SFX.groan(); }
   }
 
   magicBlock(p) {
@@ -1181,8 +1257,18 @@ export class Match {
     this.fx.sparkle(pos.x, pos.y, pos.z, 0x80d8ff, 20);
     this.stats.saves++;
     this.addCoins(COINS.save, p);
-    this.toast(t('toast.save'), 'save', 0);
+    this.heroSaveFx(p);
     this.hideShotPreview();
+  }
+
+  heroSaveFx(p) {
+    // A save should feel as good as a goal.
+    const b = this.ball;
+    this.fx.sparkle(b.pos.x, b.pos.y, b.pos.z, 0xffd23f, 36);
+    this.fx.confetti(b.pos.x + 1, 1.5, b.pos.z, 60);
+    this.emit('banner', { big: t('banner.save'), small: t('banner.saveSub', { name: p.char.name }), ms: 1500 });
+    SFX.cheer();
+    this.opts.stadium.crowd.userData.cheer();
   }
 
   gkDistribute(p) {
@@ -1230,7 +1316,9 @@ export class Match {
     this.score[team]++;
     this.lastGoalTeam = team;
     this.state = 'goal';
-    this.stateT = 3.6;
+    this.goalT = 0;
+    this.slowGoal = team === 0; // our goals get a slow-motion moment
+    this.stateT = team === 0 ? 4.2 : 3.4;
     this.hideShotPreview();
     SFX.whistle();
     const own = by && by.team !== team;
@@ -1564,6 +1652,7 @@ export class Match {
       m.root.rotation.y = p.face;
       animatePlayer(m, p.anim, dt);
       p.shadow.position.set(p.pos.x, 0.02, p.pos.z);
+      if (p.teamRing) p.teamRing.position.set(p.pos.x, 0.03, p.pos.z);
       const sh = 1 / (1 + p.flyY * 0.4);
       p.shadow.scale.setScalar(sh);
     }
@@ -1614,6 +1703,8 @@ export class Match {
       const s = 1 + Math.sin(this.time * 12) * 0.15;
       this.targetAir.scale.setScalar(s);
       this.targetGround.scale.setScalar(s);
+      const ready = Math.abs(this.hero.pos.z - this.shotPreview.z) < 0.75 && Math.abs(this.hero.pos.x - this.target.position.x) < 1.2;
+      this.targetGround.material.color.setHex(ready ? 0x2ee66b : 0xff3b3b);
       this.shotPreview.t -= dt;
       if (this.shotPreview.t <= 0) this.hideShotPreview();
     }

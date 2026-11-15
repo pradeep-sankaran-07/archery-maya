@@ -69,6 +69,15 @@ html, body {
   animation: bob 0.8s ease-in-out infinite;
 }
 .plabel .gk { font-size: 11px; }
+.plabel.mate, .plabel.foe { border: 2px solid rgba(255,255,255,.9); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+/* Slow motion: cinema bars */
+body::before, body::after {
+  content: ''; position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 3; pointer-events: none;
+  transition: height .25s ease;
+}
+body::before { top: 0; }
+body::after { bottom: 0; }
+body.slowmo::before, body.slowmo::after { height: 6vh; }
 .flabel {
   position: absolute; left: 0; top: 0; transform: translate(-50%, -100%);
   font-size: 15px; font-weight: 700; color: var(--purple);

@@ -9,9 +9,9 @@ export const MATCH_SECONDS = 80;
 
 // Team kits. Index 0 is always the player's team.
 export const KITS = [
-  { jersey: 0xffc94a, trim: 0x3a1f5e, css: '#ffc94a' }, // gold
-  { jersey: 0xe8453c, trim: 0xffffff, css: '#e8453c' }, // red
-  { jersey: 0x3f7fe0, trim: 0xffffff, css: '#3f7fe0' }, // blue
+  { name: 'yellow', jersey: 0xffc94a, trim: 0x3a1f5e, css: '#ffc94a', text: '#3a1f5e' }, // gold
+  { name: 'red', jersey: 0xe8453c, trim: 0xffffff, css: '#e8453c', text: '#ffffff' }, // red
+  { name: 'blue', jersey: 0x3f7fe0, trim: 0xffffff, css: '#3f7fe0', text: '#ffffff' }, // blue
 ];
 
 export const COINS = {

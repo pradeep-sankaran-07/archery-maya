@@ -73,6 +73,21 @@ function updateCamera(dt) {
     const r = portrait ? 46 : 34;
     desiredP.set(Math.sin(cam.orbitA) * r, portrait ? 26 : 17, Math.cos(cam.orbitA) * r);
     fov = portrait ? 55 : 42;
+  } else if (cam.mode === 'match' && match && match.camGoal() && !(portrait && match.camGoal() < 0 && match.role === 'goalie')) {
+    // Close-up on the goal while a shot flies in (slow motion), and for the goal itself.
+    const gs = match.camGoal();
+    const gx = gs * HL;
+    const bz = THREE.MathUtils.clamp(match.ball.pos.z, -6, 6);
+    if (!portrait) {
+      desiredP.set(gx - gs * 7, 3.4, 8.5);
+      desiredT.set(gx - gs * 1.2, 0.9, bz * 0.3);
+      fov = 40;
+    } else {
+      desiredP.set(gx - gs * 10.5, 4.6, bz * 0.35);
+      desiredT.set(gx - gs * 0.5, 1.0, bz * 0.2);
+      fov = 54;
+    }
+    cam.fast = true;
   } else if (cam.mode === 'match' && match) {
     const f = match.focus();
     const celebrating = match.state === 'goal';
@@ -117,14 +132,19 @@ function updateCamera(dt) {
     cam.orbitA += dt * 0.4;
     fov = 42;
   }
-  const k = cam.snap ? 1 : 1 - Math.exp(-dt * 3.5);
+  const k = cam.snap ? 1 : 1 - Math.exp(-dt * (cam.fast ? 6 : 3.5));
+  const closeUp = cam.fast;
   cam.snap = false;
+  cam.fast = false;
   cam.target.lerp(desiredT, k);
   cam.pos.lerp(desiredP, k);
   if (Math.abs(camera.fov - fov) > 0.01) { camera.fov += (fov - camera.fov) * Math.min(1, k * 2); camera.updateProjectionMatrix(); }
   camera.position.copy(cam.pos);
   camera.lookAt(cam.target);
-  camFwd.set(cam.target.x - cam.pos.x, 0, cam.target.z - cam.pos.z).normalize();
+  // Keep the joystick directions steady while the camera does a close-up.
+  if (!closeUp && !cam.wasClose) camFwd.set(cam.target.x - cam.pos.x, 0, cam.target.z - cam.pos.z).normalize();
+  if (closeUp) cam.settle = 0.6; else cam.settle = Math.max(0, (cam.settle || 0) - dt);
+  cam.wasClose = cam.settle > 0;
 }
 
 // ── Labels over heads ───────────────────────────────────────────────────
@@ -141,7 +161,13 @@ function setPlayerLabels(players) {
     const el = document.createElement('div');
     el.className = 'plabel' + (p.human ? ' hero' : '');
     el.innerHTML = `${p.role === 'gk' ? '<span class="gk">🧤</span> ' : ''}${esc(p.char.name)}`;
-    if (!p.human) el.style.borderBottom = `3px solid ${KITS[p.team === 0 ? 0 : S.opp].css}`;
+    if (!p.human) {
+      // Name tags wear the team colour too.
+      const kit = KITS[p.team === 0 ? 0 : S.opp];
+      el.style.background = kit.css;
+      el.style.color = kit.text;
+      el.classList.add(p.team === 0 ? 'mate' : 'foe');
+    }
     labelsEl.appendChild(el);
     labelEls.set(p, el);
   }
@@ -906,7 +932,9 @@ function frame() {
   let dt = Math.min(0.05, clock.getDelta());
   elapsed += dt;
   if (match) {
-    acc += dt * timeScale;
+    const slow = match.slowmo;
+    document.body.classList.toggle('slowmo', slow < 0.99);
+    acc += dt * timeScale * slow;
     const step = 1 / 60;
     let n = 0;
     while (acc >= step && n < 12 * timeScale) { match.update(step); acc -= step; n++; }
