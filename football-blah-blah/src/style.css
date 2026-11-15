@@ -218,7 +218,7 @@ html, body {
 @media (orientation: portrait) { .toast { top: calc(140px + var(--sat)); font-size: 17px; white-space: normal; text-align: center; } }
 @keyframes toastIn { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 .banner {
-  position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
+  position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%);
   text-align: center; color: #fff; font-weight: 700;
   animation: bannerIn 0.45s cubic-bezier(.2,1.6,.4,1);
 }
@@ -414,3 +414,43 @@ input.name {
 
 .lang-btn { font-size: 26px; padding: 6px 10px; min-height: 48px; }
 .rotate-tip { color: #fff; font-size: 14px; font-weight: 600; opacity: 0.9; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+
+/* Trophy screen: side by side on landscape phones */
+.trophy-row { margin: auto 0; display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%; max-width: 820px; }
+.trophy-side { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+@media (orientation: portrait) { .trophy-row { flex-direction: column; } }
+
+/* Short landscape phones (e.g. iPhone sideways, ~390px tall) */
+@media (max-height: 500px) {
+  .screen { padding-top: calc(8px + var(--sat)); padding-bottom: calc(8px + var(--sab)); }
+  h2.heading { font-size: 24px; margin: 0 0 4px; }
+  .msg-big { font-size: 24px; }
+  .btn.big { font-size: 22px; padding: 10px 30px; min-height: 56px; }
+  .sticky-bottom { padding-top: 8px; padding-bottom: calc(8px + var(--sab)); }
+  .title-logo { font-size: 58px; }
+  .center-col { gap: 8px; }
+  .subtitle { font-size: 15px; }
+  .teams { gap: 8px; }
+  .team-card { padding: 6px 8px; }
+  .team-card .tn { font-size: 16px; }
+  .team-card .pl { font-size: 14px; margin-top: 3px; padding: 1px 6px; }
+  .team-card .pl img { width: 24px; height: 24px; }
+  .vs { font-size: 17px; }
+  .panel { padding: 8px 12px; }
+  table.cup { font-size: 15px; }
+  table.cup td { padding: 4px 6px; }
+  .result-line { font-size: 18px; }
+  .score-big { font-size: 40px; }
+  input.name { font-size: 20px; padding: 6px 10px; }
+  .lb-list { max-height: 58vh; }
+  .trophy-stage { width: 170px; height: 196px; }
+  .trophy-svg { width: 150px; height: 174px; }
+  .surprise { font-size: 80px; }
+  .trophy-stage.open .surprise { transform: translate(-50%, -40px) scale(1); }
+  .choice { padding: 10px; }
+  .choice .emo { font-size: 50px; }
+  .medals { font-size: 14px; padding: 6px 10px; line-height: 1.35; }
+  .place-line { font-size: 22px; }
+  .prize .e { font-size: 32px; }
+  .group-title { font-size: 17px; margin: 6px 4px 4px; }
+}

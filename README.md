@@ -6,6 +6,14 @@ A 2D adventure game for kids. Pick a hero, choose your bow and arrow, then run t
 
 **[https://pradeep-sankaran-07.github.io/archery-maya/](https://pradeep-sankaran-07.github.io/archery-maya/)**
 
+## ⚽ Also here: Football Blah-Blah
+
+A 3D football game designed by Maya (8): pick yourself from the same friends and family, choose the Aladdin or Circus world, score goals (or be the goalie), ride a magic carpet, win a trophy (sometimes there's a diaper inside), then shop for prizes.
+
+**[https://pradeep-sankaran-07.github.io/archery-maya/football-blah-blah/](https://pradeep-sankaran-07.github.io/archery-maya/football-blah-blah/)**
+
+Source and design notes: [`football-blah-blah/`](football-blah-blah/).
+
 ## Controls
 
 - `←` / `→` &nbsp; walk
@@ -43,7 +51,8 @@ Three hearts. Death respawns you at the last checkpoint with full hearts — nev
 ```
 npm install
 npm run dev    # http://localhost:5174
-npm run build  # production build into dist/
+npm run build  # production build into dist/ (both games)
+npm run dev:football  # Football Blah-Blah on http://localhost:5175
 ```
 
 ## Tech

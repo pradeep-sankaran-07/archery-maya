@@ -9,3 +9,4 @@ export const FENCE_Z = HW + 1.2;
 export const BOX_D = 7;        // penalty box depth
 export const BOX_HW = 7;       // penalty box half width
 export const GRAVITY = 9.8;
+export const END_WALL = 0.15;   // end boards sit just behind the goal line, beside the goal

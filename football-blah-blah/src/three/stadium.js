@@ -143,10 +143,24 @@ function buildFence(theme) {
     const b = mkBoard(sideLen, 4);
     b.position.set(0, bh / 2, s * FENCE_Z);
     g.add(b);
-    const e = mkBoard(endLen, 3);
-    e.rotation.y = Math.PI / 2;
-    e.position.set(s * FENCE_X, bh / 2, 0);
-    g.add(e);
+    // end boards on the goal line, either side of the goal
+    const segLen = FENCE_Z - GOAL_HW - 0.1;
+    for (const zs of [-1, 1]) {
+      const e = mkBoard(segLen, 1);
+      e.rotation.y = Math.PI / 2;
+      e.position.set(s * (HL + 0.25), bh / 2, zs * (GOAL_HW + 0.1 + segLen / 2));
+      g.add(e);
+    }
+    // short side boards joining the goal-line boards to the back fence
+    for (const zs of [-1, 1]) {
+      const c = new THREE.Mesh(new THREE.BoxGeometry(FENCE_X - HL, bh, 0.12), toon(0x333344));
+      c.position.set(s * (HL + (FENCE_X - HL) / 2 + 0.2), bh / 2, zs * (GOAL_HW + 0.15));
+      g.add(c);
+    }
+    const back = mkBoard(GOAL_HW * 2 + 0.3, 0.3);
+    back.rotation.y = Math.PI / 2;
+    back.position.set(s * FENCE_X, bh / 2, 0);
+    g.add(back);
   }
   // tall mesh fence behind each goal
   const ft = fenceTexture();
@@ -466,21 +480,21 @@ export function buildStadium(theme) {
     bulbs.forEach((p, i) => { mm.makeTranslation(p.x, p.y, p.z); bulbMesh.setMatrixAt(i, mm); bulbMesh.setColorAt(i, cc.setHex(bcols[i % 4])); });
     root.add(bulbMesh);
     // Sweeping spotlight beams
-    const beamMat = new THREE.MeshBasicMaterial({ color: 0xfff6d0, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xfff6d0, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
     const beams = [];
     for (let i = 0; i < 4; i++) {
       const beam = new THREE.Mesh(new THREE.ConeGeometry(4, 30, 20, 1, true), beamMat);
       beam.geometry.translate(0, -15, 0);
       const holder = new THREE.Group();
-      holder.position.set((i - 1.5) * 16, 30, -10);
+      holder.position.set((i - 1.5) * 16, 30, -16);
       holder.add(beam);
       root.add(holder);
       beams.push(holder);
     }
     updaters.push((time) => {
       beams.forEach((b, i) => {
-        b.rotation.z = Math.sin(time * 0.5 + i * 1.7) * 0.5;
-        b.rotation.x = Math.cos(time * 0.4 + i) * 0.35;
+        b.rotation.z = Math.sin(time * 0.5 + i * 1.7) * 0.35;
+        b.rotation.x = -0.3 + Math.cos(time * 0.4 + i) * 0.15;
       });
     });
     // Circus drums / pedestals around

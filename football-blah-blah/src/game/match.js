@@ -4,7 +4,7 @@ import {
   buildCarpet, buildLamp, buildTopHat, lightBeam, buildGenie, buildGenieHand, buildTiger,
   buildElephant, buildCannon, buildBalloons, buildCircusNet,
 } from '../three/models.js';
-import { HL, HW, GOAL_HW, GOAL_H, GOAL_D, FENCE_X, FENCE_Z, BOX_D, BOX_HW, GRAVITY } from './constants.js';
+import { HL, HW, GOAL_HW, GOAL_H, GOAL_D, FENCE_X, FENCE_Z, BOX_D, BOX_HW, GRAVITY, END_WALL } from './constants.js';
 import { SFX } from '../audio.js';
 import { t } from '../i18n.js';
 import { COINS } from '../data.js';
@@ -134,6 +134,7 @@ export class Match {
   }
 
   dispose() {
+    this.disposed = true;
     this.scene.remove(this.group);
     this.group.traverse((o) => { if (o.geometry && !o.geometry.parameters?.shared) { /* geometries shared; let GC handle */ } });
   }
@@ -552,15 +553,9 @@ export class Match {
           p.pos.z = clamp(p.pos.z, -GOAL_HW - 1.2, GOAL_HW + 1.2);
         }
       } else {
-        p.pos.x = clamp(p.pos.x, -FENCE_X + 0.4, FENCE_X - 0.4);
+        // the end walls sit on the goal line, so nobody gets stuck behind a goal
+        p.pos.x = clamp(p.pos.x, -HL + 0.35, HL - 0.35);
         p.pos.z = clamp(p.pos.z, -FENCE_Z + 0.4, FENCE_Z - 0.4);
-        // keep out of the nets
-        for (const s of [-1, 1]) {
-          if (p.pos.x * s > HL - 0.2 && Math.abs(p.pos.z) < GOAL_HW + 0.3) {
-            if (p.pos.x * s < HL + 0.3) p.pos.x = s * (HL - 0.2);
-            else p.pos.z = Math.sign(p.pos.z || 1) * (GOAL_HW + 0.3);
-          }
-        }
       }
       const sp = flat(p.vel);
       if (sp > 0.4 && !(p.role === 'gk' && p.anim.diveT > 0)) {
@@ -656,6 +651,14 @@ export class Match {
       const crossed = prev.x * s < HL + 0.05 && b.pos.x * s >= HL + 0.05;
       if (!crossed) continue;
       if (Math.abs(b.pos.z) < GOAL_HW - BALL_R * 0.5 && b.pos.y < GOAL_H - BALL_R * 0.5) {
+        const shield = this.powerActive && (this.powerActive.kind === 'genie' || this.powerActive.kind === 'net');
+        if (s < 0 && shield && this.state === 'play') {
+          // magic keeps the ball out
+          b.pos.x = -HL - 0.05 + 0.3;
+          b.vel.x = Math.abs(b.vel.x) * 0.5;
+          this.magicBlock(this.hero);
+          return;
+        }
         b.inNet = s;
         if (this.state === 'play') this.goalScored(s > 0 ? 0 : 1);
         return;
@@ -676,7 +679,21 @@ export class Match {
     const b = this.ball;
     if (b.inNet) return;
     const ex = FENCE_X - BALL_R, ez = FENCE_Z - BALL_R;
+    const wallX = HL + END_WALL - BALL_R;
+    // End walls beside the goal (on the goal line)
+    if (Math.abs(b.pos.x) > wallX && Math.abs(b.pos.x) < wallX + 0.6 && Math.abs(b.pos.z) > GOAL_HW + 0.1 && b.vel.x * Math.sign(b.pos.x) > 0) {
+      b.pos.x = Math.sign(b.pos.x) * wallX; b.vel.x *= -0.6; SFX.bounce(); this.missed();
+    }
     if (Math.abs(b.pos.x) > ex) { b.pos.x = Math.sign(b.pos.x) * ex; b.vel.x *= -0.6; SFX.bounce(); this.missed(); }
+    // Over the bar / behind the goal: the keeper gets it back (goal kick).
+    if (Math.abs(b.pos.x) > HL + 0.3 && b.pos.y < 0.6 && this.state === 'play') {
+      this.behindT = (this.behindT || 0) + 1 / 60;
+      if (this.behindT > 0.4) {
+        this.behindT = 0;
+        const keeper = this.players.find((q) => q.role === 'gk' && (q.team === 0 ? -1 : 1) === Math.sign(b.pos.x));
+        if (keeper) { this.missed(); this.gkCatch(keeper); b.pos.set(keeper.pos.x, 1, keeper.pos.z); }
+      }
+    } else this.behindT = 0;
     if (Math.abs(b.pos.z) > ez) { b.pos.z = Math.sign(b.pos.z) * ez; b.vel.z *= -0.6; SFX.bounce(); }
     if (b.pos.y > 9) { b.pos.y = 9; b.vel.y = -Math.abs(b.vel.y) * 0.5; }
     // outside of the net boxes: push the ball out
@@ -910,7 +927,7 @@ export class Match {
       if (kind === 'first') pGoal *= 0.95;
       if (!p.human) pGoal = 0.5;
     } else {
-      pGoal = 0.5;
+      pGoal = 0.42;
     }
     this.launchShot(p, kind, { tx: gx + attack * 0.6, ty, tz, speed, pGoal, onTarget, keeper });
   }
@@ -1283,7 +1300,7 @@ export class Match {
     if (a > c) this.addCoins(COINS.win, this.hero);
     else if (a === c) this.addCoins(COINS.draw, this.hero);
     this.emit('banner', { big: t('banner.fullTime'), small: `${a} – ${c}`, ms: 2600 });
-    setTimeout(() => this.emit('ended', this.result()), 2800);
+    setTimeout(() => { if (!this.disposed) this.emit('ended', this.result()); }, 2800);
   }
 
   result() {

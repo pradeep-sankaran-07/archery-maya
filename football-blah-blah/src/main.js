@@ -77,8 +77,11 @@ function updateCamera(dt) {
     const f = match.focus();
     const celebrating = match.state === 'goal';
     if (!portrait) {
-      desiredT.set(THREE.MathUtils.clamp(f.x, -13, 13), 0, THREE.MathUtils.clamp(f.z * 0.55, -5, 5));
-      const zoom = celebrating ? 0.75 : 1;
+      // a little ahead (right) and toward the camera so the player stays clear of the buttons
+      desiredT.set(THREE.MathUtils.clamp(f.x + 1.5, -15, 16), 0, THREE.MathUtils.clamp(f.z * 0.75, -6, 8) + 1.2);
+      // narrower screens (laptops, iPads) pull the camera back a bit
+      const wide = THREE.MathUtils.clamp(2.05 / camera.aspect, 1, 1.4);
+      const zoom = (celebrating ? 0.75 : 1) * wide;
       desiredP.set(desiredT.x, 10.5 * zoom, desiredT.z + 13 * zoom);
       fov = 40;
     } else {
@@ -89,8 +92,8 @@ function updateCamera(dt) {
       fov = 56;
     }
   } else if (cam.mode === 'podium') {
-    desiredT.set(0, 1.9, 0);
-    desiredP.set(Math.sin(cam.orbitA) * 2, portrait ? 4.5 : 3.6, portrait ? 17 : 11.5);
+    desiredT.set(0, portrait ? 0.2 : -0.6, 0);
+    desiredP.set(Math.sin(cam.orbitA) * 2, portrait ? 3.6 : 2.4, portrait ? 19 : 13);
     cam.orbitA += dt * 0.3;
     fov = portrait ? 58 : 42;
   } else if (cam.mode === 'hero') {
@@ -400,7 +403,6 @@ function buildHud() {
       <span class="tname">${esc(teamName(opp))}</span><span class="dot" style="background:${KITS[opp].css}"></span>
       <span class="clock" id="clock">1:20</span>
     </div>
-    <div class="match-tag">${t('hud.match', { n: S.matchNo })}</div>
     <div class="coins" id="coins">🪙 0 kr</div>`;
   hudEl.querySelector('#pauseBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); actions.pause(); });
   hudEl.querySelector('#pauseBtn').style.pointerEvents = 'auto';
@@ -446,7 +448,10 @@ function startMatch() {
 function onMatchEvent(type, data) {
   switch (type) {
     case 'toast': toast(data); break;
-    case 'banner': banner(data); break;
+    case 'banner':
+      if (data.big === t('banner.fullTime')) { toastsEl.querySelectorAll('.toast').forEach((e) => e.remove()); input.clearHints(); }
+      banner(data);
+      break;
     case 'score': hud.s0.textContent = data.score[0]; hud.s1.textContent = data.score[1]; break;
     case 'coins': hud.coins.textContent = `🪙 ${S.coins + data.total} kr`; coinPop(data.add, data.at); break;
     case 'hints':
@@ -518,9 +523,11 @@ function screenCup(res, other) {
         <div class="result-line">${last ? t('cup.final') : t('cup.after1')}</div>
         <table class="cup"><tr><th></th><th>${t('cup.pts')}</th><th>${t('cup.goals')}</th></tr>${rows}</table>
       </div>
-      ${last ? `<button class="btn big pulse gold" data-act="toPodium">${t('cup.podium')}</button>`
-        : `<div class="vs">${t('lineup.match', { n: 2, a: esc(teamName(0)), b: esc(teamName(2)) })}</div><button class="btn big pulse" data-act="nextMatch">${t('cup.next')}</button>`}
-    </div>`);
+      ${last ? '' : `<div class="vs">${t('lineup.match', { n: 2, a: esc(teamName(0)), b: esc(teamName(2)) })}</div>`}
+      <div style="height:90px"></div>
+    </div>
+    <div class="sticky-bottom">${last ? `<button class="btn big pulse gold" data-act="toPodium">${t('cup.podium')}</button>`
+        : `<button class="btn big pulse" data-act="nextMatch">${t('cup.next')}</button>`}</div>`);
   void el;
   cam.mode = 'orbit';
   labelsEl.innerHTML = '';
@@ -636,11 +643,13 @@ function screenTrophy() {
   showHeroShowcase();
   const place = S.place;
   const el = show(`
-    <div class="center-col">
-      <div class="msg-big">${t(`trophy.${['gold', 'silver', 'bronze'][place - 1]}`)}</div>
+    <div class="trophy-row">
       <div class="trophy-stage" id="trophy">${trophySvg(place)}<div class="surprise" id="surprise"></div></div>
-      <div class="tap-me" id="tapme">${t('trophy.tap')}</div>
-      <div id="trophyResult" class="center-col" style="gap:10px;margin:0"></div>
+      <div class="trophy-side">
+        <div class="msg-big">${t(`trophy.${['gold', 'silver', 'bronze'][place - 1]}`)}</div>
+        <div class="tap-me" id="tapme">${t('trophy.tap')}</div>
+        <div id="trophyResult" class="center-col" style="gap:10px;margin:0"></div>
+      </div>
     </div>`);
   const stage = el.querySelector('#trophy');
   let opened = false;
