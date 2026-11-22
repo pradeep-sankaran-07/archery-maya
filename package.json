@@ -1,13 +1,15 @@
 {
   "name": "archery-maya",
   "version": "1.0.0",
-  "description": "Archery Maya \u2014 a 2D adventure game for kids",
+  "description": "Archery Maya, Football Blah-Blah and Math Quest: games for kids",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:football": "vite --config football-blah-blah/vite.config.js",
-    "build": "vite build && vite build --config football-blah-blah/vite.config.js",
-    "preview": "vite preview"
+    "build": "vite build && vite build --config football-blah-blah/vite.config.js && vite build --config math-quest/vite.config.js",
+    "preview": "vite preview",
+    "dev:math": "vite --config math-quest/vite.config.js",
+    "check:math": "node math-quest/scripts/check-questions.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0",
