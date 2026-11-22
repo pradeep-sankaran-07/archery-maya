@@ -14,6 +14,14 @@ A 3D football game designed by Maya (8): pick yourself from the same friends and
 
 Source and design notes: [`football-blah-blah/`](football-blah-blah/).
 
+## ⭐ Also here: Math Quest
+
+Story math for an 8-year-old: times tables and two-step word problems from the Lion King, Mufasa, The Greatest Showman, Aladdin, The Mighty Ducks, School of Rock, and Maya's own friends. Hints with pictures, stars, stickers and badges.
+
+**[https://pradeep-sankaran-07.github.io/archery-maya/math-quest/](https://pradeep-sankaran-07.github.io/archery-maya/math-quest/)**
+
+Source and question bank: [`math-quest/`](math-quest/).
+
 ## Controls
 
 - `←` / `→` &nbsp; walk
@@ -51,8 +59,9 @@ Three hearts. Death respawns you at the last checkpoint with full hearts — nev
 ```
 npm install
 npm run dev    # http://localhost:5174
-npm run build  # production build into dist/ (both games)
+npm run build  # production build into dist/ (all three games)
 npm run dev:football  # Football Blah-Blah on http://localhost:5175
+npm run dev:math      # Math Quest on http://localhost:5176
 ```
 
 ## Tech
