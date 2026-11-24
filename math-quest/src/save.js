@@ -1,12 +1,32 @@
 // Progress lives in localStorage, one record per player.
+//
+// KEEPING PROGRESS SAFE ACROSS UPDATES (please keep these rules):
+//  - Never change KEY. A new key means an empty game for everyone.
+//  - Only ever ADD fields. profile() fills in missing ones with defaults,
+//    so old saves keep working. Never delete or rename saved fields.
+//  - Question, sticker and badge ids are what progress is saved against.
+//    Never rename or remove a shipped id: `npm run check:math` fails if one
+//    listed in scripts/shipped-ids.json goes missing.
+//  - A copy of the last good save is kept in BACKUP_KEY. If the main save
+//    ever can't be read, the game starts from that copy instead of zero.
 const KEY = 'math-quest.v1';
+const BACKUP_KEY = 'math-quest.v1.backup';
+
+function read(key) {
+  try {
+    const d = JSON.parse(localStorage.getItem(key));
+    if (d && typeof d === 'object' && d.players) return d;
+  } catch { /* ignore */ }
+  return null;
+}
 
 function load() {
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && typeof d === 'object') return d;
-  } catch { /* ignore */ }
-  return {};
+  const main = read(KEY);
+  if (main) {
+    try { localStorage.setItem(BACKUP_KEY, JSON.stringify(main)); } catch { /* ignore */ }
+    return main;
+  }
+  return read(BACKUP_KEY) || {};
 }
 
 const data = Object.assign({ player: 'maya', players: {}, settings: {} }, load());
