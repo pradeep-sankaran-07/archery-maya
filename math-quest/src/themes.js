@@ -280,14 +280,198 @@ function friends() {
   `, defs);
 }
 
-const SCENES = { lionking, mufasa, showman, aladdin, ducks, rock, friends };
+// ── Level 2 scenes: same worlds, a new place to visit ──────────
+
+function pine(x, y, s, fill = '#1f4a3a', snow = true) {
+  return `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-8" y="-20" width="16" height="30" fill="#4a2a1a"/>
+    <path d="M0 -190 L60 -100 L30 -100 L80 -20 L-80 -20 L-30 -100 L-60 -100 Z" fill="${fill}"/>
+    ${snow ? '<path d="M0 -190 L22 -157 L8 -150 L-6 -158 L-22 -157 Z M-30 -100 L-12 -106 L4 -100 L22 -106 L30 -100 L44 -80 L-44 -80 Z" fill="#f4fbff" opacity=".9"/>' : ''}</g>`;
+}
+
+function lionking2() {
+  const defs = sky('lk2Sky', [[0, '#0b1240'], [0.55, '#2a2a6e'], [0.85, '#5a3a7a'], [1, '#8a4a6a']])
+    + `<radialGradient id="lk2Moon"><stop offset="0" stop-color="#fffbe0"/><stop offset=".6" stop-color="#fff2b0" stop-opacity=".5"/><stop offset="1" stop-color="#fff2b0" stop-opacity="0"/></radialGradient>`;
+  const r = rng(21);
+  const flies = Array.from({ length: 26 }, () => `<circle class="tw" style="animation-delay:-${(r() * 3).toFixed(2)}s" cx="${(r() * 1600).toFixed(0)}" cy="${(560 + r() * 260).toFixed(0)}" r="${(3 + r() * 3).toFixed(1)}" fill="#e8ff7a"/>`).join('');
+  return svg(`
+    <rect width="1600" height="900" fill="url(#lk2Sky)"/>
+    ${stars(140, 31, { maxY: 520 })}
+    <circle cx="1180" cy="230" r="260" fill="url(#lk2Moon)"/>
+    <circle cx="1180" cy="230" r="110" fill="#fff6d0"/>
+    <circle cx="1145" cy="205" r="18" fill="#efe2b0"/><circle cx="1215" cy="260" r="12" fill="#efe2b0"/>
+    <path d="M0 620 Q260 560 520 610 T1050 590 T1600 610 V900 H0Z" fill="#2a1d48"/>
+    ${acacia(380, 640, 1.2, '#140c26')} ${acacia(1380, 650, .9, '#140c26')}
+    ${giraffe(1000, 640, .8, '#140c26')}
+    <path d="M0 700 Q400 660 800 700 T1600 690 V900 H0Z" fill="#1d1436"/>
+    <ellipse cx="800" cy="790" rx="420" ry="60" fill="#36508a"/>
+    <ellipse cx="830" cy="790" rx="120" ry="16" fill="#fff6d0" opacity=".55"/>
+    <ellipse class="flow" cx="800" cy="790" rx="360" ry="44" fill="none" stroke="#9ab8f0" stroke-width="3" stroke-dasharray="30 50" opacity=".5"/>
+    ${flies}
+  `, defs);
+}
+
+function mufasa2() {
+  const defs = sky('mu2Sky', [[0, '#8fd8f8'], [1, '#d8f6e8']])
+    + `<linearGradient id="mu2Fall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8fbff"/><stop offset="1" stop-color="#7fd0f0"/></linearGradient>`;
+  const leaf = (x, y, r, c) => `<ellipse cx="${x}" cy="${y}" rx="120" ry="40" fill="${c}" transform="rotate(${r} ${x} ${y})"/>`;
+  const rainbow = ['#ff5a5f', '#ffa94a', '#ffd94a', '#4caf50', '#4a90e2', '#8b5fbf']
+    .map((c, i) => `<path d="M${560 + i * 14} 520 A ${260 - i * 14} ${260 - i * 14} 0 0 1 ${1080 - i * 14} 520" stroke="${c}" stroke-width="14" fill="none" opacity=".55"/>`).join('');
+  return svg(`
+    <rect width="1600" height="900" fill="url(#mu2Sky)"/>
+    ${rainbow}
+    <path d="M0 160 L380 120 L520 240 L560 900 L0 900Z" fill="#3f6a4a"/>
+    <path d="M1600 140 L1180 110 L1060 240 L1040 900 L1600 900Z" fill="#3f6a4a"/>
+    <path d="M520 240 L1060 240 L1060 260 L520 260Z" fill="#2f5a3a"/>
+    <rect x="600" y="250" width="400" height="520" fill="url(#mu2Fall)"/>
+    <g stroke="#ffffff" stroke-width="6" opacity=".8">${[640, 700, 760, 820, 880, 940].map((x, i) => `<line class="flow" style="animation-delay:-${i * 0.3}s" x1="${x}" y1="250" x2="${x}" y2="770" stroke-dasharray="40 60"/>`).join('')}</g>
+    <ellipse cx="800" cy="790" rx="420" ry="80" fill="#4ab0d8"/>
+    <g fill="#ffffff" opacity=".85">${[650, 720, 800, 880, 950].map((x) => `<circle class="tw" cx="${x}" cy="770" r="22"/>`).join('')}</g>
+    ${leaf(120, 700, -30, '#2f8a4a')} ${leaf(260, 780, 20, '#3fa85a')} ${leaf(1480, 700, 30, '#2f8a4a')} ${leaf(1340, 790, -20, '#3fa85a')}
+    ${leaf(180, 300, 40, '#2f8a4a')} ${leaf(1420, 320, -40, '#2f8a4a')}
+    <g stroke="#2a6a3a" stroke-width="8" fill="none"><path d="M360 120 Q340 300 380 460"/><path d="M1240 110 Q1270 280 1230 420"/></g>
+    <path d="M0 840 Q800 800 1600 840 V900 H0Z" fill="#2f7a4f"/>
+  `, defs);
+}
+
+function showman2() {
+  const defs = `<radialGradient id="gs2Bg" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#5a1a4a"/><stop offset="1" stop-color="#14051a"/></radialGradient>
+    <radialGradient id="gs2Spot"><stop offset="0" stop-color="#fff6c0" stop-opacity=".8"/><stop offset="1" stop-color="#fff6c0" stop-opacity="0"/></radialGradient>
+    <pattern id="gs2Ring" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="30" height="60" fill="#c81f36"/><rect x="30" width="30" height="60" fill="#f2e6c8"/></pattern>`;
+  const curtain = (x, flip) => `<path d="M${x} 0 ${flip ? `L${x - 260} 0 Q${x - 160} 400 ${x - 230} 900 L${x} 900 Z` : `L${x + 260} 0 Q${x + 160} 400 ${x + 230} 900 L${x} 900 Z`}" fill="#a01028"/>
+    <g stroke="#6a0818" stroke-width="10" fill="none" opacity=".7">${[60, 130, 200].map((d) => `<path d="M${flip ? x - d : x + d} 0 Q${flip ? x - d + 30 : x + d - 30} 450 ${flip ? x - d + 10 : x + d - 10} 900"/>`).join('')}</g>`;
+  return svg(`
+    <rect width="1600" height="900" fill="url(#gs2Bg)"/>
+    ${stars(50, 9, { maxY: 300, color: '#ffd94a' })}
+    <g stroke="#ccc" stroke-width="3"><line x1="620" y1="0" x2="660" y2="300"/><line x1="820" y1="0" x2="780" y2="300"/>
+      <line x1="980" y1="0" x2="1000" y2="220"/><line x1="1140" y1="0" x2="1120" y2="220"/></g>
+    <g class="sway" style="transform-origin:720px 0px"><rect x="650" y="296" width="140" height="10" rx="5" fill="#ffd94a"/></g>
+    <g class="sway2" style="transform-origin:1060px 0px"><rect x="990" y="216" width="140" height="10" rx="5" fill="#ffd94a"/></g>
+    <ellipse cx="800" cy="760" rx="700" ry="160" fill="#3a0f24"/>
+    <ellipse cx="800" cy="750" rx="640" ry="130" fill="url(#gs2Ring)"/>
+    <ellipse cx="800" cy="750" rx="560" ry="104" fill="#e8c27a"/>
+    <ellipse cx="800" cy="750" rx="560" ry="104" fill="none" stroke="#ffd94a" stroke-width="6"/>
+    <ellipse class="tw" cx="560" cy="740" rx="160" ry="44" fill="url(#gs2Spot)"/>
+    <ellipse class="tw" style="animation-delay:-1.3s" cx="1060" cy="760" rx="160" ry="44" fill="url(#gs2Spot)"/>
+    <g transform="translate(800 720)"><rect x="-60" y="-70" width="120" height="70" rx="10" fill="#4a90e2"/><rect x="-60" y="-70" width="120" height="14" fill="#ffd94a"/>
+      <path d="M0 -60 l8 18 h20 l-16 12 l6 20 l-18 -12 l-18 12 l6 -20 l-16 -12 h20z" fill="#fff"/></g>
+    ${curtain(0, false)} ${curtain(1600, true)}
+    <path d="M0 0 H1600 V70 Q1500 110 1400 70 Q1300 110 1200 70 Q1100 110 1000 70 Q900 110 800 70 Q700 110 600 70 Q500 110 400 70 Q300 110 200 70 Q100 110 0 70 Z" fill="#c81f36"/>
+    <path d="M0 70 Q100 110 200 70 Q300 110 400 70 Q500 110 600 70 Q700 110 800 70 Q900 110 1000 70 Q1100 110 1200 70 Q1300 110 1400 70 Q1500 110 1600 70" stroke="#ffd94a" stroke-width="6" fill="none"/>
+  `, defs);
+}
+
+function aladdin2() {
+  const defs = sky('al2Sky', [[0, '#6ec8f0'], [1, '#ffe6b0']])
+    + `<linearGradient id="al2Wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2c48a"/><stop offset="1" stop-color="#d89a5a"/></linearGradient>`;
+  const awning = (x, w, c1, c2) => {
+    const n = 6, sw = w / n;
+    return `<g>${Array.from({ length: n }, (_, i) => `<path d="M${x + i * sw} 470 L${x + (i + 1) * sw} 470 L${x + (i + 1) * sw} 540 Q${x + i * sw + sw / 2} 565 ${x + i * sw} 540 Z" fill="${i % 2 ? c2 : c1}"/>`).join('')}</g>`;
+  };
+  const stall = (x, c1, c2, goods) => `<g>
+    <rect x="${x}" y="540" width="300" height="200" fill="#8a4a1e"/><rect x="${x + 10}" y="560" width="280" height="12" fill="#6a3a12"/>
+    ${awning(x - 10, 320, c1, c2)}
+    <g>${Array.from({ length: 8 }, (_, i) => `<circle cx="${x + 30 + (i % 4) * 75}" cy="${610 + Math.floor(i / 4) * 60}" r="22" fill="${goods[i % goods.length]}"/>`).join('')}</g></g>`;
+  const lanterns = [260, 520, 800, 1080, 1340].map((x, i) => `<g class="fly" style="animation-delay:-${i * 0.5}s"><line x1="${x}" y1="0" x2="${x}" y2="150" stroke="#6a3a12" stroke-width="3"/>
+    <path d="M${x - 20} 150 Q${x} 120 ${x + 20} 150 L${x + 14} 200 Q${x} 214 ${x - 14} 200 Z" fill="${['#ff5a5f', '#ffd94a', '#40d8ff', '#8b5fbf', '#ff9a3c'][i]}"/></g>`).join('');
+  return svg(`
+    <rect width="1600" height="900" fill="url(#al2Sky)"/>
+    <g fill="#f8e0b8">${dome(800, 380, 300, 220, '#f8e0b8')}<rect x="640" y="380" width="320" height="120"/></g>
+    <circle cx="800" cy="300" r="16" fill="#ffd94a"/>
+    <rect y="420" width="1600" height="480" fill="url(#al2Wall)"/>
+    <g fill="#c47a3a" opacity=".5">${[120, 460, 1140, 1480].map((x) => `<path d="M${x - 40} 520 v-60 q40 -50 80 0 v60 z"/>`).join('')}</g>
+    ${stall(80, '#e8453c', '#fff4e0', ['#ff9a3c', '#ffd94a', '#e8453c'])}
+    ${stall(1220, '#4a90e2', '#fff4e0', ['#7a4bd6', '#4caf50', '#a0d468'])}
+    ${stall(650, '#8b5fbf', '#ffd94a', ['#e8453c', '#ff7eb3', '#ffd94a'])}
+    ${lanterns}
+    <rect y="760" width="1600" height="140" fill="#e2b072"/>
+    <g fill="#c99052">${Array.from({ length: 16 }, (_, i) => `<rect x="${i * 100 + 10}" y="790" width="80" height="20" rx="6"/>`).join('')}</g>
+  `, defs);
+}
+
+function ducks2() {
+  const defs = sky('md2Sky', [[0, '#2a3a7a'], [0.45, '#d86a8a'], [0.75, '#ffb27a'], [1, '#ffe0b0']])
+    + `<linearGradient id="md2Ice" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaff"/><stop offset="1" stop-color="#9ccdf0"/></linearGradient>`;
+  const r = rng(77);
+  const snow = Array.from({ length: 60 }, () => `<circle class="float" style="animation-delay:-${(r() * 4.5).toFixed(2)}s" cx="${(r() * 1600).toFixed(0)}" cy="${(200 + r() * 600).toFixed(0)}" r="${(2 + r() * 4).toFixed(1)}" fill="#fff"/>`).join('');
+  return svg(`
+    <rect width="1600" height="900" fill="url(#md2Sky)"/>
+    <circle cx="300" cy="470" r="90" fill="#ffe08a" opacity=".9"/>
+    <path d="M0 520 Q300 420 600 500 T1200 480 T1600 500 V900 H0Z" fill="#eef6ff"/>
+    ${pine(120, 600, 1.1)} ${pine(260, 580, .8)} ${pine(1340, 590, 1.2)} ${pine(1480, 610, .9)} ${pine(1210, 600, .7)}
+    <ellipse cx="800" cy="720" rx="640" ry="150" fill="url(#md2Ice)"/>
+    <g stroke="#ffffff" stroke-width="4" opacity=".7" fill="none"><path d="M380 700 Q520 680 640 720"/><path d="M900 760 Q1040 730 1180 750"/><path d="M700 650 Q800 640 900 660"/></g>
+    <g transform="translate(1110 640)"><path d="M0 0 L90 0 L100 70 L-10 70 Z" fill="none" stroke="#e8453c" stroke-width="8"/>
+      <g stroke="#fff" stroke-width="2">${[0, 1, 2, 3, 4].map((i) => `<line x1="${i * 22}" y1="0" x2="${-6 + i * 26}" y2="70"/>`).join('')}</g></g>
+    <ellipse class="slide" cx="420" cy="740" rx="18" ry="7" fill="#111"/>
+    <g transform="translate(560 560)"><rect x="0" y="0" width="160" height="60" rx="8" fill="#2b9a5c"/><text x="80" y="42" text-anchor="middle" font-size="30" font-family="Fredoka, sans-serif" font-weight="700" fill="#fff">POND</text><rect x="70" y="60" width="20" height="80" fill="#6a4a2a"/></g>
+    ${snow}
+  `, defs);
+}
+
+function rock2() {
+  const defs = sky('sr2Wall', [[0, '#f4e6c8'], [1, '#e8d2a8']]);
+  return svg(`
+    <rect width="1600" height="900" fill="url(#sr2Wall)"/>
+    <rect y="0" width="1600" height="40" fill="#c8a878"/>
+    <g>${[0, 1].map((i) => `<g transform="translate(${80 + i * 1260} 120)"><rect width="200" height="260" fill="#9fd8ff" stroke="#fff" stroke-width="12"/><line x1="100" y1="0" x2="100" y2="260" stroke="#fff" stroke-width="8"/><line x1="0" y1="130" x2="200" y2="130" stroke="#fff" stroke-width="8"/><circle cx="60" cy="60" r="26" fill="#fff07a"/></g>`).join('')}</g>
+    <rect x="420" y="90" width="760" height="380" rx="10" fill="#8a5a2a"/>
+    <rect x="440" y="110" width="720" height="340" fill="#24463a"/>
+    <g font-family="'Comic Sans MS', Fredoka, sans-serif" fill="#f0f0e0" font-weight="700">
+      <text x="800" y="200" text-anchor="middle" font-size="64">SCHOOL OF ROCK</text>
+      <text x="520" y="300" font-size="48">3 × 4 = 12</text>
+      <text x="880" y="300" font-size="48">🎸 + 🥁 = 🤘</text>
+      <text x="520" y="390" font-size="44">♪ ♫ ♪  ♫ ♪</text>
+    </g>
+    <rect x="440" y="450" width="720" height="16" fill="#6a4a2a"/>
+    <rect y="620" width="1600" height="280" fill="#b8865a"/>
+    <g stroke="#9a6a40" stroke-width="3">${Array.from({ length: 9 }, (_, i) => `<line x1="0" y1="${650 + i * 30}" x2="1600" y2="${650 + i * 30}"/>`).join('')}</g>
+    <g transform="translate(160 560)"><rect width="200" height="150" rx="10" fill="#111"/><circle cx="60" cy="75" r="40" fill="#333" stroke="#555" stroke-width="5"/><circle cx="145" cy="75" r="40" fill="#333" stroke="#555" stroke-width="5"/></g>
+    <g transform="translate(1290 470) rotate(-14)">
+      <rect x="40" y="-110" width="18" height="220" fill="#6a3a1a"/>
+      <path d="M49 110 C -20 110 -30 200 30 220 C 0 260 40 320 90 300 C 150 320 170 250 130 220 C 180 190 140 110 49 110 Z" fill="#e8453c"/>
+      <circle cx="65" cy="215" r="18" fill="#2a0a0a"/>
+    </g>
+    <g transform="translate(560 620)"><rect width="240" height="110" fill="#c89a5a"/><rect x="10" y="110" width="12" height="80" fill="#6a4a2a"/><rect x="218" y="110" width="12" height="80" fill="#6a4a2a"/></g>
+    <g transform="translate(860 640)"><rect width="240" height="110" fill="#c89a5a"/><rect x="10" y="110" width="12" height="80" fill="#6a4a2a"/><rect x="218" y="110" width="12" height="80" fill="#6a4a2a"/></g>
+    <g font-size="60" fill="#8b5fbf" opacity=".6" font-family="serif"><text class="float" x="1240" y="200">♪</text><text class="float" style="animation-delay:-2s" x="320" y="520">♫</text></g>
+  `, defs);
+}
+
+function friends2() {
+  const defs = sky('fr2Sky', [[0, '#5ab8f0'], [1, '#c8ecff']])
+    + `<linearGradient id="fr2Sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a9ad8"/><stop offset="1" stop-color="#5ad0e8"/></linearGradient>`;
+  const waves = Array.from({ length: 3 }, (_, k) => `<path class="drift" style="animation-duration:${18 + k * 6}s" d="M-300 ${560 + k * 40} ${Array.from({ length: 22 }, (_, i) => `q50 -18 100 0`).join(' ')}" stroke="#fff" stroke-width="5" fill="none" opacity=".6"/>`).join('');
+  return svg(`
+    <rect width="1600" height="900" fill="url(#fr2Sky)"/>
+    <circle cx="1350" cy="140" r="80" fill="#fff07a"/><circle class="tw" cx="1350" cy="140" r="110" fill="#fff07a" opacity=".3"/>
+    <rect y="480" width="1600" height="260" fill="url(#fr2Sea)"/>
+    ${waves}
+    <g class="bob"><g transform="translate(980 440)"><path d="M0 60 L120 60 L100 90 L20 90 Z" fill="#e8453c"/><rect x="58" y="-60" width="6" height="120" fill="#6a3a1a"/><path d="M64 -56 L64 50 L120 50 Z" fill="#fff"/><path d="M58 -40 L58 50 L10 50 Z" fill="#ffd94a"/></g></g>
+    <path d="M0 700 Q400 650 800 690 T1600 680 V900 H0Z" fill="#f6dca0"/>
+    <g transform="translate(300 600)"><line x1="0" y1="0" x2="20" y2="200" stroke="#6a3a1a" stroke-width="8"/><path d="M-160 20 Q0 -100 170 30 Z" fill="#ff7eb3"/><path d="M-160 20 Q-80 -60 0 -10 Z" fill="#fff" opacity=".5"/></g>
+    <g transform="translate(760 760)"><circle r="44" fill="#fff"/><path d="M-44 0 A44 44 0 0 1 0 -44 L0 0 Z" fill="#e8453c"/><path d="M0 -44 A44 44 0 0 1 44 0 L0 0 Z" fill="#4a90e2"/><path d="M44 0 A44 44 0 0 1 0 44 L0 0 Z" fill="#ffd94a"/></g>
+    <g transform="translate(1240 700)"><path d="M0 0 L60 -100 L120 0 Z" fill="#e8c27a"/><rect x="0" y="0" width="120" height="60" fill="#e8c27a"/><rect x="45" y="20" width="30" height="40" fill="#c89a5a"/><path d="M60 -100 L60 -140 L90 -128 L60 -118" fill="#e8453c"/></g>
+    <g fill="#f4a0b8">${[180, 520, 1040, 1460].map((x, i) => `<path d="M${x} ${820 + (i % 2) * 30} l14 -20 l14 20 z"/>`).join('')}</g>
+  `, defs);
+}
+
+const SCENES = { lionking, mufasa, showman, aladdin, ducks, rock, friends, lionking2, mufasa2, showman2, aladdin2, ducks2, rock2, friends2 };
 const cache = {};
 export function sceneSVG(id) {
   if (!cache[id]) cache[id] = (SCENES[id] || friends)();
   return cache[id];
 }
+export const sceneId = (world, lv = 1) => (lv === 2 ? `${world}2` : world);
 
-/** A rainbow-ish scene for the menus. */
-export function menuSVG() {
-  return sceneSVG('friends');
-}
+/** Level 2 of each world: a new place and new cheers. */
+export const LEVEL2 = {
+  lionking: { place: 'The Pride Lands at night', praise: ['Under the stars, you shine!', 'Moonlight maths magic!', 'The whole pride cheers for you!'] },
+  mufasa: { place: 'The hidden waterfall', praise: ['Splash! That\'s right!', 'You found the hidden answer!', 'Mufasa roars for you!'] },
+  showman: { place: 'Inside the ring', praise: ['Spotlight on you, superstar!', 'What a showstopper!', 'Standing ovation!'] },
+  aladdin: { place: 'The Agrabah market', praise: ['A bargain! Correct!', 'The whole market cheers!', 'Genie high five!'] },
+  ducks: { place: 'The frozen pond', praise: ['Ice cold and totally right!', 'Ducks on the pond, GOAL!', 'Quack-tastic!'] },
+  rock: { place: 'Rock class', praise: ['A plus, rock star!', 'Class rocks!', 'Turn it up! Correct!'] },
+  friends: { place: 'Beach day', praise: ['Making waves! Correct!', 'Sunny and super smart!', 'Beach day hero!'] },
+};
+export function placeFor(world, lv) { return lv === 2 ? LEVEL2[world].place : themeById(world).place; }
+export function praiseFor(world, lv) { return lv === 2 ? LEVEL2[world].praise : themeById(world).praise; }

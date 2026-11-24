@@ -31,9 +31,11 @@ function fresh() {
     worldsPlayed: {},
     days: [],
     history: {}, // question id -> { tries, wrong }
+    unlockSeen: {}, // world -> true once the 'Level 2 unlocked' party was shown
+    unlockAll: false, // grown-ups can open every Level 2 straight away
     stats: {
       answered: 0, correct: 0, firstTry: 0, streak: 0, bestStreak: 0,
-      rounds: 0, perfectRounds: 0, comebacks: 0, fast: 0, hints: 0,
+      rounds: 0, perfectRounds: 0, comebacks: 0, hints: 0, l2rounds: 0,
       kinds: { times: 0, share: 0, plusminus: 0, twostep: 0 },
     },
   };
