@@ -10,6 +10,8 @@ import { QUESTIONS } from '../src/questions.js';
 import { QUESTIONS_L2 } from '../src/questions2.js';
 import { solve, kindOf, levelOf } from '../src/mathsteps.js';
 import { CHARACTERS } from '../../src/config.js';
+import { ALL_STICKERS, BADGES } from '../src/rewards.js';
+import { readFileSync } from 'node:fs';
 
 const ids = new Set();
 const problems = [];
@@ -97,6 +99,14 @@ for (const x of L2) {
   }
 }
 for (const [k, list] of Object.entries(facts)) if (list.length > 3) problems.push(`${k} is used ${list.length} times in Level 2: ${list.join(', ')}`);
+
+// Progress is saved against these ids: a shipped id must never disappear.
+const shipped = JSON.parse(readFileSync(new URL('./shipped-ids.json', import.meta.url)));
+const have = { questions: ids, stickers: new Set(ALL_STICKERS.map((s) => s.id)), badges: new Set(BADGES.map((b) => b.id)) };
+for (const k of ['questions', 'stickers', 'badges']) {
+  const gone = shipped[k].filter((id) => !have[k].has(id));
+  if (gone.length) problems.push(`shipped ${k} removed or renamed (saved progress would be lost): ${gone.join(', ')}`);
+}
 
 for (const lv of [1, 2]) {
   const qs = all.filter((x) => x.lv === lv);
