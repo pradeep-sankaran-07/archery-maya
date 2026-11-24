@@ -491,3 +491,58 @@ code { background: #f3ecfb; padding: 1px 6px; border-radius: 6px; font-size: 14p
   .avatar-mascot .avatar { width: 120px; }
   .play-main { gap: 18px; }
 }
+
+/* ── Level 2 ─────────────────────────────────────────── */
+.play-btn { position: relative; }
+.new-flag {
+  position: absolute; top: -14px; right: -18px; background: #ff4a6a; color: #fff; font-size: 14px; padding: 4px 10px;
+  border-radius: 999px; text-shadow: none; box-shadow: 0 3px 0 #a01a3a; transform: rotate(8deg); animation: wiggle 1.4s ease-in-out infinite;
+}
+.world-card { cursor: default; }
+.world-card:hover, .world-card:active { transform: none; }
+.lvl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.world-card.mix .lvl-row { grid-template-columns: 1fr; }
+.lvl-btn {
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px; text-align: left; min-height: 64px;
+  padding: 8px 10px; border-radius: 14px; background: #f6f0fc; border: 3px solid var(--c, #ccc);
+  box-shadow: 0 4px 0 var(--d, #999); cursor: pointer;
+}
+.lvl-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--d, #999); }
+.lvl-btn.lv2 { background: linear-gradient(160deg, #fff7d6, #ffe6f2); }
+.lvl-btn.done { background: #eaffea; }
+.lvl-btn.locked { background: #eee8f4; border-color: #d0c6dc; box-shadow: none; cursor: default; opacity: .85; }
+.lvl-name { font-weight: 700; font-size: 18px; white-space: nowrap; }
+.lvl-meta { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; color: #6a5a88; flex-wrap: wrap; }
+.lvl-btn .bar { display: block; }
+.lvl-btn .bar-fill { display: block; }
+.new-pill { background: #ff4a6a; color: #fff; font-size: 12px; padding: 1px 7px; border-radius: 999px; vertical-align: middle; animation: pulse 1.2s ease-in-out infinite; display: inline-block; }
+.lv-tag { background: rgba(255,255,255,.3); border-radius: 999px; padding: 1px 8px; font-size: 13px; margin-left: 4px; }
+.unlock-card { width: min(560px, 100%); }
+.unlock-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 8px 0; }
+.unlock-item { border-radius: 14px; overflow: hidden; background: #fff; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); font-weight: 700; font-size: 15px; animation: popIn .5s cubic-bezier(.2, 1.5, .4, 1) both; }
+.unlock-item:nth-child(2) { animation-delay: .08s; } .unlock-item:nth-child(3) { animation-delay: .16s; } .unlock-item:nth-child(4) { animation-delay: .24s; }
+.unlock-item:nth-child(5) { animation-delay: .32s; } .unlock-item:nth-child(6) { animation-delay: .4s; } .unlock-item:nth-child(7) { animation-delay: .48s; }
+.unlock-scene { height: 64px; position: relative; overflow: hidden; }
+.unlock-scene .scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.unlock-item span { display: block; padding: 4px 6px; }
+.unlock-note { font-weight: 600; color: #8a4a00; }
+.unlock-banner {
+  margin: 10px 0 4px; padding: 10px 14px; border-radius: 16px; font-size: 19px; font-weight: 600;
+  background: linear-gradient(90deg, #fff3c4, #ffe0f0); border: 3px solid var(--gold); animation: bump .8s ease 2;
+}
+.book-level { color: #fff; font-weight: 700; font-size: 16px; margin: 8px 4px 6px; text-shadow: 0 1px 0 rgba(0,0,0,.4), 0 0 8px rgba(0,0,0,.4); }
+.vis-and { text-align: center; font-weight: 700; color: #8a5ac8; margin: 6px 0; }
+@media (max-width: 420px) {
+  .lvl-name { font-size: 16px; }
+  .lvl-btn { padding: 6px 8px; }
+  .unlock-list { grid-template-columns: 1fr 1fr; }
+  .unlock-scene { height: 48px; }
+}
+@media (max-height: 500px) {
+  .unlock-scene { height: 44px; }
+  .unlock-item span { font-size: 13px; }
+  .unlock-banner { font-size: 16px; padding: 6px 10px; }
+}
+/* Phones in portrait: Level 2 stories are a little longer */
+@media (max-width: 420px) and (max-aspect-ratio: 1/1) { .qtext { font-size: 18px; line-height: 1.3; } .qbody { padding: 8px 12px; } }
+@media (max-width: 380px) and (max-aspect-ratio: 1/1) { .qtext { font-size: 17px; } .emoji-mascot { font-size: 44px; } }

@@ -1,25 +1,29 @@
 import './style.css';
 import { CHARACTERS } from '../../src/config.js';
 import { QUESTIONS } from './questions.js';
-import { THEMES, themeById, sceneSVG } from './themes.js';
+import { QUESTIONS_L2 } from './questions2.js';
+import { THEMES, themeById, sceneSVG, sceneId, placeFor, praiseFor } from './themes.js';
 import { solve, kindOf, levelOf, SYMBOL } from './mathsteps.js';
-import { ALL_STICKERS, STICKERS, pickSticker, stickerById, BADGES, rankFor } from './rewards.js';
+import { ALL_STICKERS, STICKERS, STICKERS2, pickSticker, stickerById, BADGES, rankFor } from './rewards.js';
 import { SFX, say, unlockAudio, stopTalking } from './audio.js';
 import { profile, persist, settings, setSetting, currentPlayerId, setPlayer, markToday, resetPlayer } from './save.js';
 import { avatarSVG, charById } from './avatar.js';
 import { confetti } from './confetti.js';
 
 // ── the question bank, with answers and steps worked out ──────────
+// lv = which level of the world (1 or 2); diff = how hard the question is.
 const BANK = [];
-for (const [world, list] of Object.entries(QUESTIONS)) {
-  for (const q of list) {
-    const { answer, steps } = solve(q.x);
-    BANK.push({ ...q, world, answer, steps, kind: kindOf(steps), level: levelOf(steps) });
+for (const [lv, set] of [[1, QUESTIONS], [2, QUESTIONS_L2]]) {
+  for (const [world, list] of Object.entries(set)) {
+    for (const q of list) {
+      const { answer, steps } = solve(q.x);
+      BANK.push({ ...q, world, lv, answer, steps, kind: kindOf(steps), diff: levelOf(steps) });
+    }
   }
 }
-const byWorld = (w) => BANK.filter((q) => q.world === w);
+const byWorld = (w, lv = 1) => BANK.filter((q) => q.world === w && q.lv === lv);
 const ROUND = 5;
-const FAST_SECONDS = 20;
+const LEVELS = [1, 2];
 
 // ── tiny DOM helpers ──────────────────────────────────────────────
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -95,12 +99,24 @@ function bindTopbar(back) {
 }
 
 // ── badges ────────────────────────────────────────────────────────
-function worldDone(p, world) {
-  return byWorld(world).every((q) => p.best[q.id] >= 1);
+function worldDone(p, world, lv = 1) {
+  return byWorld(world, lv).every((q) => p.best[q.id] >= 1);
 }
+/** Level 2 opens once every Level 1 question in that world is solved. */
+function unlocked(p, world, lv) {
+  return lv === 1 || p.unlockAll || worldDone(p, world, lv - 1);
+}
+function unlockedLevels(p, world) { return LEVELS.filter((lv) => unlocked(p, world, lv)); }
+/** Worlds whose Level 2 is open but the party has not been shown yet. */
+function freshUnlocks(p) { return THEMES.filter((t) => unlocked(p, t.id, 2) && !p.unlockSeen[t.id]); }
+const badgeCount = (p) => BADGES.filter((b) => p.badges[b.id]).length;
 function checkBadges() {
   const p = profile();
-  const ctx = { worldDone: (w) => worldDone(p, w), stickerCount: ALL_STICKERS.length };
+  const ctx = {
+    worldDone: (w, lv) => worldDone(p, w, lv),
+    allDone: (lv) => THEMES.every((t) => worldDone(p, t.id, lv)),
+    stickerCount: ALL_STICKERS.length,
+  };
   const won = [];
   for (const b of BADGES) {
     if (!p.badges[b.id] && b.test(p, ctx)) {
@@ -156,8 +172,9 @@ function titleScreen() {
   const c = charById(currentPlayerId());
   const r = rankFor(p.stars);
   const pct = r.next ? Math.round(((p.stars - r.min) / (r.next.at - r.min)) * 100) : 100;
-  const badges = Object.keys(p.badges).length;
+  const badges = badgeCount(p);
   const stickers = Object.keys(p.stickers).length;
+  const news = freshUnlocks(p).length;
   show(`
     ${topbar()}
     <div class="title-wrap">
@@ -175,7 +192,7 @@ function titleScreen() {
         <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
         <div class="rank-next">${r.next ? `${r.next.at - p.stars} more ⭐ to become <b>${r.next.name} ${r.next.emoji}</b>` : 'The highest rank! 👑'}</div>
       </div>
-      <button class="big-btn play-btn" data-play>▶ PLAY</button>
+      <button class="big-btn play-btn" data-play>▶ PLAY${news ? '<span class="new-flag">NEW LEVELS!</span>' : ''}</button>
       <div class="menu-row">
         <button class="menu-btn" data-stickers><span>📒</span>Stickers<small>${stickers}/${ALL_STICKERS.length}</small></button>
         <button class="menu-btn" data-badges><span>🏅</span>Badges<small>${badges}/${BADGES.length}</small></button>
@@ -226,37 +243,71 @@ function playersScreen() {
 // ══════════════════════════════════════════════════════════════════
 function worldsScreen() {
   const p = profile();
-  const card = (t) => {
-    const qs = byWorld(t.id);
+  const levelBtn = (t, lv) => {
+    const qs = byWorld(t.id, lv);
     const solved = qs.filter((q) => p.best[q.id] >= 1).length;
     const stars = qs.reduce((s, q) => s + (p.best[q.id] || 0), 0);
+    if (!unlocked(p, t.id, lv)) {
+      const need = byWorld(t.id, lv - 1).filter((q) => !(p.best[q.id] >= 1)).length;
+      return `<div class="lvl-btn locked"><span class="lvl-name">🔒 Level ${lv}</span><span class="lvl-meta">Solve ${need} more in Level ${lv - 1} to open</span></div>`;
+    }
     const done = solved === qs.length;
-    return `<button class="world-card" data-world="${t.id}" style="--c:${t.color};--d:${t.dark}">
-      <div class="world-scene">${sceneSVG(t.id)}</div>
+    const isNew = lv === 2 && solved === 0;
+    return `<button class="lvl-btn lv${lv} ${done ? 'done' : ''}" data-world="${t.id}" data-lv="${lv}">
+      <span class="lvl-name">${lv === 1 ? '⭐' : '🚀'} Level ${lv}${isNew ? ' <span class="new-pill">NEW</span>' : ''}</span>
+      <span class="bar small"><span class="bar-fill" style="width:${Math.round((solved / qs.length) * 100)}%"></span></span>
+      <span class="lvl-meta"><span>${done ? '✅ All solved!' : `${solved}/${qs.length} solved`}</span><span>⭐ ${stars}/${qs.length * 3}</span></span>
+    </button>`;
+  };
+  const card = (t) => {
+    const top = Math.max(...unlockedLevels(p, t.id));
+    return `<div class="world-card" style="--c:${t.color};--d:${t.dark}">
+      <div class="world-scene">${sceneSVG(sceneId(t.id, top))}</div>
       <div class="world-info">
         <div class="world-name"><span class="world-icon">${t.icon}</span>${esc(t.name)}</div>
-        <div class="bar small"><div class="bar-fill" style="width:${Math.round((solved / qs.length) * 100)}%"></div></div>
-        <div class="world-meta"><span>${done ? '✅ All solved!' : `${solved}/${qs.length} solved`}</span><span>⭐ ${stars}/${qs.length * 3}</span></div>
+        <div class="lvl-row">${LEVELS.map((lv) => levelBtn(t, lv)).join('')}</div>
       </div>
-    </button>`;
+    </div>`;
   };
   show(`
     ${topbar({ back: true, title: 'Pick a world!' })}
     <div class="scroll">
       <div class="world-grid">
         ${THEMES.map(card).join('')}
-        <button class="world-card mix" data-world="mix" style="--c:#ffb02e;--d:#8a4a00">
+        <div class="world-card mix" style="--c:#ffb02e;--d:#8a4a00">
           <div class="world-scene mix-scene"><div class="mix-icons">🦁🎪🪔<br>🦆🎸💖</div></div>
           <div class="world-info">
             <div class="world-name"><span class="world-icon">🎲</span>Surprise Mix</div>
-            <div class="world-meta"><span>Questions from every world</span></div>
+            <div class="lvl-row"><button class="lvl-btn" data-world="mix" data-lv="0"><span class="lvl-name">🎲 Play the mix</span><span class="lvl-meta"><span>Questions from every open level</span></span></button></div>
           </div>
-        </button>
+        </div>
       </div>
     </div>
   `, { scene: 'friends', cls: 'worlds' });
   bindTopbar(titleScreen);
-  on('.world-card', 'click', (e) => startRound(e.currentTarget.dataset.world));
+  on('.lvl-btn[data-world]', 'click', (e) => startRound(e.currentTarget.dataset.world, Number(e.currentTarget.dataset.lv)));
+  const news = freshUnlocks(p);
+  if (news.length) setTimeout(() => unlockParty(news), 350);
+}
+
+/** "New levels unlocked!" with confetti, shown once per world. */
+function unlockParty(worlds) {
+  const p = profile();
+  worlds.forEach((t) => { p.unlockSeen[t.id] = true; });
+  persist();
+  SFX.fanfare();
+  confetti(220);
+  const name = charById(currentPlayerId()).name;
+  say(worlds.length > 1 ? `Wow ${name}! ${worlds.length} new levels are open! Let's go!` : `Level 2 is open in ${worlds[0].name}! Let's go!`);
+  openModal(`
+    <div class="cheer-emoji">🔓</div>
+    <h2 class="cheer">New level${worlds.length > 1 ? 's' : ''} unlocked!</h2>
+    <p>You finished Level 1, so <b>Level 2</b> is open in:</p>
+    <div class="unlock-list">${worlds.map((t) => `<div class="unlock-item"><div class="unlock-scene">${sceneSVG(sceneId(t.id, 2))}</div><span>${t.icon} ${esc(t.name)}</span></div>`).join('')}</div>
+    <p class="unlock-note">New places, new questions, new stickers and new badges!</p>
+    <button class="big-btn" data-m-ok>Let's go! 🚀</button>
+  `, { cls: 'cheer-card unlock-card' });
+  on('[data-m-ok]', 'click', () => closeModal(), $('#modal'));
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -264,9 +315,15 @@ function worldsScreen() {
 // ══════════════════════════════════════════════════════════════════
 let round = null;
 
-function pickRound(world) {
+function poolFor(world, lv) {
   const p = profile();
-  const pool = world === 'mix' ? BANK : byWorld(world);
+  if (world === 'mix') return BANK.filter((q) => unlocked(p, q.world, q.lv));
+  return byWorld(world, lv);
+}
+
+function pickRound(world, lv) {
+  const p = profile();
+  const pool = poolFor(world, lv);
   const score = (q) => {
     const best = p.best[q.id] || 0;
     const base = best === 0 ? 0 : best < 3 ? 1 : 2;
@@ -274,14 +331,15 @@ function pickRound(world) {
   };
   const chosen = [...pool].sort((a, b) => score(a) - score(b)).slice(0, ROUND);
   // easy first, so every round warms up and then climbs
-  return chosen.sort((a, b) => a.level - b.level || Math.random() - 0.5);
+  return chosen.sort((a, b) => a.diff - b.diff || Math.random() - 0.5);
 }
 
-function startRound(world) {
+function startRound(world, lv = 1) {
   const p = profile();
+  if (world !== 'mix' && !unlocked(p, world, lv)) lv = 1;
   markToday(p);
   persist();
-  round = { world, qs: pickRound(world), i: 0, results: [], starsWon: 0 };
+  round = { world, lv, qs: pickRound(world, lv), i: 0, results: [], starsWon: 0 };
   if (world !== 'mix') SFX.jingle(world); else SFX.fanfare();
   showQuestion();
 }
@@ -292,7 +350,6 @@ function showQuestion() {
   const p = profile();
   round.tries = 0;
   round.entry = '';
-  round.started = performance.now();
   round.locked = false;
   const mascot = q.who
     ? `<div class="mascot avatar-mascot">${avatarSVG(q.who)}<span>${esc(charById(q.who).name)}</span></div>`
@@ -311,7 +368,7 @@ function showQuestion() {
     </header>
     <div class="play-main">
       <section class="qcard">
-        <div class="qhead" style="background:${t.color}"><span>${t.icon} ${esc(t.name)}</span><span class="qplace">${esc(t.place)}</span></div>
+        <div class="qhead" style="background:${t.color}"><span>${t.icon} ${esc(t.name)}${q.lv === 2 ? ' <span class="lv-tag">Level 2</span>' : ''}</span><span class="qplace">${esc(placeFor(q.world, q.lv))}</span></div>
         <div class="qbody">
           ${mascot}
           <p class="qtext">${esc(q.t)}</p>
@@ -335,7 +392,7 @@ function showQuestion() {
         </div>
       </section>
     </div>
-  `, { scene: q.world, theme: q.world, cls: 'play' });
+  `, { scene: sceneId(q.world, q.lv), theme: q.world, cls: 'play' });
 
   on('[data-quit]', 'click', () => {
     tapSound();
@@ -398,12 +455,11 @@ function checkAnswer() {
   if (val === q.answer) {
     round.locked = true;
     const stars = round.tries === 0 ? 3 : round.tries === 1 ? 2 : 1;
-    const secs = (performance.now() - round.started) / 1000;
     h.tries++;
     p.stats.answered++;
     p.stats.correct++;
     p.stats.kinds[q.kind]++;
-    if (round.tries === 0) { p.stats.firstTry++; if (secs < FAST_SECONDS) p.stats.fast++; } else p.stats.comebacks++;
+    if (round.tries === 0) p.stats.firstTry++; else p.stats.comebacks++;
     p.stats.streak++;
     p.stats.bestStreak = Math.max(p.stats.bestStreak, p.stats.streak);
     const prev = p.best[q.id] || 0;
@@ -441,9 +497,8 @@ function checkAnswer() {
 
 function celebrate(q, stars, prevBest) {
   const p = profile();
-  const t = themeById(q.world);
   const name = charById(currentPlayerId()).name;
-  const praise = round.tries > 0 ? pick(COMEBACK_PRAISE) : Math.random() < 0.5 ? pick(t.praise) : pick(GENERIC_PRAISE);
+  const praise = round.tries > 0 ? pick(COMEBACK_PRAISE) : Math.random() < 0.5 ? pick(praiseFor(q.world, q.lv)) : pick(GENERIC_PRAISE);
   const spoken = Math.random() < 0.3 && round.tries === 0 ? `${praise.replace(/!$/, '')}, ${name}!` : praise;
   SFX.correct();
   setTimeout(() => say(spoken), 250);
@@ -486,7 +541,7 @@ function operand(q, s, which, reveal) {
 function stepLine(q, s, k, reveal) {
   const A = operand(q, s, 'a', reveal), B = operand(q, s, 'b', reveal);
   const both = s.aStep < 0 && s.bStep < 0;
-  const words = s.op === '*' ? `${s.a} groups of ${s.b}` : `share ${s.a} into ${s.b} equal groups`;
+  const words = s.op === '*' ? `${s.a} groups of ${s.b}` : q.quot ? `how many groups of ${s.b} make ${s.a}?` : `share ${s.a} into ${s.b} equal groups`;
   const res = reveal ? `<b class="res">${s.r}</b>` : '<b class="res q">?</b>';
   const extra = !reveal && (s.op === '*' || s.op === '/') && both ? `<span class="say">(${words})</span>` : '';
   return `<div class="step"><span class="step-n">Step ${k + 1}</span><span class="step-math">${A} ${SYMBOL[s.op]} ${B} = ${res}</span>${extra}</div>`;
@@ -494,10 +549,10 @@ function stepLine(q, s, k, reveal) {
 
 function groupsVisual(groups, size, emoji, { fill = true } = {}) {
   const many = groups * size > 60 || size > 12;
-  const one = (k) => many
+  const one = () => many
     ? `<div class="grp big"><span class="grp-e">${emoji}</span><span class="grp-n">${fill ? size : '?'}</span></div>`
     : `<div class="grp">${fill ? Array.from({ length: size }, () => `<span>${emoji}</span>`).join('') : '<span class="grp-q">?</span>'}</div>`;
-  return `<div class="groups">${Array.from({ length: groups }, (_, k) => one(k)).join('')}</div>`;
+  return `<div class="groups">${Array.from({ length: groups }, one).join('')}</div>`;
 }
 
 function blocksVisual(n) {
@@ -505,17 +560,41 @@ function blocksVisual(n) {
   return `<div class="blocks">${Array.from({ length: tens }, () => '<span class="ten"></span>').join('')}${Array.from({ length: ones }, () => '<span class="one"></span>').join('')}</div>`;
 }
 
+/** 23 × 3 is easier as 20 × 3 and 3 × 3. */
+function splitTip(s, reveal) {
+  const big = Math.max(s.a, s.b), small = Math.min(s.a, s.b);
+  if (big <= 10 || big % 10 === 0) return '';
+  const tens = big - (big % 10), ones = big % 10;
+  return reveal
+    ? `<div class="vis-tip">Split ${big} into ${tens} and ${ones}: ${tens} × ${small} = ${tens * small}, ${ones} × ${small} = ${ones * small}, then ${tens * small} + ${ones * small} = ${big * small}</div>`
+    : `<div class="vis-tip">Tip: split ${big} into ${tens} and ${ones}. Do ${tens} × ${small} and ${ones} × ${small}, then add them.</div>`;
+}
+
+const literal = (s) => s.aStep < 0 && s.bStep < 0;
+
 function visualFor(q, reveal) {
-  const mult = [...q.steps].reverse().find((s) => s.op === '*');
+  const mults = q.steps.filter((s) => s.op === '*' && literal(s));
   const div = q.steps.find((s) => s.op === '/');
-  if (mult) {
-    return `<div class="vis-cap">${mult.a} groups of ${mult.b}</div>${groupsVisual(mult.a, mult.b, q.e)}`;
+  // two kinds ("4 rows of 5 gazelles and 3 rows of 6 buffalo"): draw both
+  if (mults.length === 2) {
+    return mults.map((m, k) => `<div class="vis-cap">${m.a} groups of ${m.b}</div>${groupsVisual(m.a, m.b, k ? q.e2 || q.e : q.e)}`).join('<div class="vis-and">and</div>');
   }
-  if (div) {
-    return `<div class="vis-cap">${div.a} ${esc(q.u)} shared into ${div.b} equal groups</div>
+  const mult = mults[0] || [...q.steps].reverse().find((s) => s.op === '*');
+  let html = '';
+  if (mult) {
+    html += `<div class="vis-cap">${mult.a} groups of ${mult.b}</div>${groupsVisual(mult.a, mult.b, q.e)}${splitTip(mult, reveal)}`;
+  }
+  if (div && q.quot) {
+    html += `<div class="vis-cap">${div.a} in groups of ${div.b}. How many groups?</div>
+      ${reveal ? groupsVisual(div.r, div.b, q.e) : blocksVisual(div.a)}
+      <div class="vis-tip">${reveal ? `${div.r} groups of ${div.b} make ${div.a}` : `Count by ${div.b}s until you get to ${div.a}. How many jumps?`}</div>`;
+  } else if (div) {
+    const after = mult && div.aStep >= 0;
+    html += `<div class="vis-cap">${after ? 'Then share' : 'Share'} ${div.a} into ${div.b} equal groups</div>
       ${groupsVisual(div.b, div.r, q.e, { fill: reveal })}
       ${reveal ? '' : `<div class="vis-tip">Think: ${div.b} × <b>?</b> = ${div.a}</div>`}`;
   }
+  if (html) return html;
   const s = q.steps[0];
   const tens = Math.floor(s.b / 10) * 10, ones = s.b % 10;
   const tip = s.op === '-'
@@ -563,7 +642,14 @@ function roundEnd() {
   p.stats.rounds++;
   if (perfect) p.stats.perfectRounds++;
   if (round.world !== 'mix') p.worldsPlayed[round.world] = 1;
-  const sticker = pickSticker(round.world, p.stickers, perfect);
+  if (round.lv === 2) p.stats.l2rounds++;
+  const pool = round.world === 'mix'
+    ? ALL_STICKERS.filter((st) => unlocked(p, st.world, st.lv))
+    : ALL_STICKERS.filter((st) => st.world === round.world && st.lv === round.lv);
+  const sticker = pickSticker(pool, p.stickers, perfect);
+  // Did this round just finish Level 1 of the world?
+  const opened = round.world !== 'mix' && round.lv === 1 && unlocked(p, round.world, 2) && !p.unlockSeen[round.world];
+  if (opened) p.unlockSeen[round.world] = true;
   const isNew = !p.stickers[sticker.id];
   p.stickers[sticker.id] = (p.stickers[sticker.id] || 0) + 1;
   persist();
@@ -578,6 +664,7 @@ function roundEnd() {
         <h1 class="end-title">${title}</h1>
         <div class="end-stars"><span id="countUp">0</span> ⭐ stars this round</div>
         <div class="end-dots">${round.results.map((s) => `<span>${'⭐'.repeat(s)}${'<i>☆</i>'.repeat(3 - s)}</span>`).join('')}</div>
+        ${opened ? `<div class="unlock-banner">🔓 You finished Level 1! <b>Level 2</b> is now open in ${esc(themeById(round.world).name)}!</div>` : ''}
         <div class="chest-zone" id="chestZone">
           <button class="chest" id="chest" aria-label="Open the treasure chest">
             ${chestSVG()}
@@ -585,16 +672,17 @@ function roundEnd() {
           <div class="chest-tip">Tap the treasure chest! 👆</div>
         </div>
         <div class="end-actions hidden" id="endActions">
-          <button class="big-btn" data-again>▶ Play again</button>
+          ${opened ? '<button class="big-btn" data-level2>🚀 Try Level 2</button>' : ''}
+          <button class="big-btn ${opened ? 'alt' : ''}" data-again>▶ Play again</button>
           <button class="big-btn alt" data-worlds>🗺️ Worlds</button>
           <button class="big-btn alt" data-book>📒 Stickers</button>
         </div>
       </div>
     </div>
-  `, { scene: t ? t.id : 'friends', theme: t ? t.id : null, cls: 'end' });
+  `, { scene: t ? sceneId(t.id, round.lv) : 'friends', theme: t ? t.id : null, cls: 'end' });
   bindTopbar();
   SFX.fanfare();
-  say(perfect ? 'Perfect round! Amazing!' : `Round complete! You got ${round.starsWon} stars!`);
+  say(opened ? 'You finished Level 1! Level 2 is open!' : perfect ? 'Perfect round! Amazing!' : `Round complete! You got ${round.starsWon} stars!`);
   confetti(perfect ? 260 : 150);
   // count the stars up
   let n = 0;
@@ -606,11 +694,11 @@ function roundEnd() {
     SFX.star(n % 3);
   }, 90);
 
-  const world = round.world;
-  let opened = false;
+  const world = round.world, lv = round.lv;
+  let chestOpen = false;
   const open = async () => {
-    if (opened) return;
-    opened = true;
+    if (chestOpen) return;
+    chestOpen = true;
     const chest = $('#chest');
     chest.classList.add('shake');
     SFX.drumroll(0.9);
@@ -631,10 +719,11 @@ function roundEnd() {
     $('#endActions').classList.remove('hidden');
   };
   on('#chest', 'click', open);
-  on('[data-again]', 'click', () => startRound(world));
+  on('[data-again]', 'click', () => startRound(world, lv));
+  on('[data-level2]', 'click', () => startRound(world, 2));
   on('[data-worlds]', 'click', () => { tapSound(); worldsScreen(); });
   on('[data-book]', 'click', () => { tapSound(); stickersScreen(); });
-  keyHandler = (e) => { if (e.key === 'Enter') { if (!opened) open(); else startRound(world); } };
+  keyHandler = (e) => { if (e.key === 'Enter') { if (!chestOpen) open(); else startRound(world, opened ? 2 : lv); } };
 }
 
 function chestSVG() {
@@ -667,13 +756,15 @@ function stickersScreen() {
     <div class="scroll">
       ${THEMES.map((t) => `
         <h2 class="group-h">${t.icon} ${esc(t.name)}</h2>
-        <div class="sticker-grid">
-          ${STICKERS[t.id].map(([id]) => {
-            const s = stickerById(id);
-            return p.stickers[id] ? stickerHTML(s, false, p.stickers[id])
-              : `<div class="sticker locked"><div class="sticker-face">${s.legendary ? '✨' : '❔'}</div><div class="sticker-name">${s.legendary ? 'Gold sticker' : '???'}</div></div>`;
-          }).join('')}
-        </div>`).join('')}
+        ${[[1, STICKERS], [2, STICKERS2]].map(([lv, set]) => `
+          <div class="book-level">Level ${lv}${lv === 2 && !unlocked(p, t.id, 2) ? ' 🔒' : ''}</div>
+          <div class="sticker-grid">
+            ${set[t.id].map(([id]) => {
+              const s = stickerById(id);
+              return p.stickers[id] ? stickerHTML(s, false, p.stickers[id])
+                : `<div class="sticker locked"><div class="sticker-face">${s.legendary ? '✨' : '❔'}</div><div class="sticker-name">${s.legendary ? 'Gold sticker' : '???'}</div></div>`;
+            }).join('')}
+          </div>`).join('')}`).join('')}
       <p class="foot-note">Finish a round to open a treasure chest and win a sticker. A perfect round can win a ✨gold✨ one!</p>
     </div>
   `, { scene: 'friends', cls: 'book' });
@@ -683,7 +774,7 @@ function stickersScreen() {
 function badgesScreen() {
   const p = profile();
   show(`
-    ${topbar({ back: true, title: `🏅 Badges ${Object.keys(p.badges).length}/${BADGES.length}` })}
+    ${topbar({ back: true, title: `🏅 Badges ${badgeCount(p)}/${BADGES.length}` })}
     <div class="scroll">
       <div class="badge-grid">
         ${BADGES.map((b) => `
@@ -717,6 +808,12 @@ function grownupsScreen() {
     const first = qs.filter((q) => p.best[q.id] === 3).length;
     return `<tr><td>${label}</td><td>${tried.length}/${qs.length}</td><td>${tried.length ? `${first}` : '-'}</td></tr>`;
   }).join('');
+  const worldRows = THEMES.map((t) => `<tr><td>${t.icon} ${esc(t.name)}</td>${LEVELS.map((lv) => {
+    const qs = byWorld(t.id, lv);
+    const solved = qs.filter((q) => p.best[q.id] >= 1).length;
+    return `<td>${unlocked(p, t.id, lv) ? `${solved}/${qs.length}` : '🔒'}</td>`;
+  }).join('')}</tr>`).join('');
+  const anyLocked = THEMES.some((t) => !unlocked(p, t.id, 2));
   const tricky = BANK.filter((q) => p.history[q.id]?.wrong > 0)
     .sort((a, b) => p.history[b.id].wrong - p.history[a.id].wrong).slice(0, 8);
   const s = p.stats;
@@ -732,21 +829,25 @@ function grownupsScreen() {
           <div><b>${s.bestStreak}</b><span>best streak</span></div>
           <div><b>${(p.days || []).length}</b><span>days played</span></div>
         </div>
+        <table class="kinds"><thead><tr><th>World</th><th>Level 1</th><th>Level 2</th></tr></thead><tbody>${worldRows}</tbody></table>
         <table class="kinds"><thead><tr><th>Type of question</th><th>Tried</th><th>3 stars</th></tr></thead><tbody>${rows}</tbody></table>
         ${tricky.length ? `<h3>Tricky ones to practise together</h3><ul class="tricky">${tricky.map((q) => `<li><span>${esc(q.t)}</span><b>${q.answer} ${esc(q.u)}</b><i>${p.history[q.id].wrong} wrong ${p.history[q.id].wrong === 1 ? 'try' : 'tries'}</i></li>`).join('')}</ul>` : ''}
       </div>
       <div class="panel">
         <h2>About the questions</h2>
-        <p>100 story problems at Norwegian 3rd grade level (3. trinn): times tables up to 10, small two-digit × one-digit (like 12 × 2), sharing equally, and two-step problems (multiply, then add or take away a little). Every round starts easy and climbs. Questions she has not solved yet, or solved with help, come back first.</p>
+        <p>${BANK.length} story problems at Norwegian 3rd grade level (3. trinn). <b>Level 1</b> (100): times tables up to 10, small two-digit × one-digit (like 12 × 2), sharing equally, and two-step problems (multiply, then add or take away a little). <b>Level 2</b> (105, opens when Level 1 of a world is all solved): a small step up, with 15 different kinds of story in every world, such as "times as many", "how many more", change from money, "how many groups of 8", and 23 × 3. No Level 2 question repeats the maths of another question.</p>
+        <p>Every round starts easy and climbs. Questions she has not solved yet, or solved with help, come back first.</p>
         <p>Stars: ⭐⭐⭐ right first time, ⭐⭐ after a hint, ⭐ after solving it together. A wrong answer opens a picture hint, a second one walks through the steps. Nothing is ever lost.</p>
-        <p>To add questions, edit <code>math-quest/src/questions.js</code> and run <code>npm run check:math</code>.</p>
+        <p>To add questions, edit <code>math-quest/src/questions.js</code> (Level 1) or <code>questions2.js</code> (Level 2) and run <code>npm run check:math</code>.</p>
       </div>
       <div class="panel">
+        ${anyLocked ? `<p>Played Level 1 on another device? You can open every Level 2 here straight away.</p><button class="big-btn alt" data-unlock>🔓 Open all Level 2 worlds</button><br><br>` : ''}
         <button class="big-btn alt danger" data-reset>Reset ${esc(name)}'s progress</button>
       </div>
     </div>
   `, { scene: 'friends', cls: 'grownups' });
   bindTopbar(titleScreen);
+  on('[data-unlock]', 'click', () => { p.unlockAll = true; persist(); SFX.pop(); grownupsScreen(); });
   on('[data-reset]', 'click', () => {
     openModal(`<div class="modal-emoji">⚠️</div><h2>Start over?</h2><p>This clears ${esc(name)}'s stars, stickers and badges on this device.</p>
       <div class="modal-actions"><button class="big-btn alt" data-m-no>No, keep them</button><button class="big-btn danger" data-m-yes>Yes, reset</button></div>`);
@@ -759,12 +860,15 @@ function grownupsScreen() {
 // Handy for testing: ?world=lionking jumps straight into a round.
 const params = new URLSearchParams(location.search);
 titleScreen();
-if (params.get('world')) startRound(params.get('world'));
+if (params.get('world')) startRound(params.get('world'), Number(params.get('lv')) || 1);
 $('#loading').classList.add('hidden');
 
 // expose a little for automated tests
 window.__mq = {
   BANK, profile,
   get round() { return round; },
-  preview(id) { const q = BANK.find((x) => x.id === id); round = { world: q.world, qs: [q], i: 0, results: [], starsWon: 0 }; showQuestion(); },
+  preview(id) { const q = BANK.find((x) => x.id === id); round = { world: q.world, lv: q.lv, qs: [q], i: 0, results: [], starsWon: 0 }; showQuestion(); },
+  worlds: () => worldsScreen(),
+  hint: (id) => { const q = BANK.find((x) => x.id === id); showHint(q); },
+  solution: (id) => { const q = BANK.find((x) => x.id === id); showSolution(q); },
 };

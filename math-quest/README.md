@@ -20,6 +20,12 @@ Story math for Maya (8): times tables and two-step word problems set in her favo
 
 The **Grown-ups** page shows right-first-time rates by question type and lists the questions she found tricky.
 
+## Level 2
+
+When every Level 1 question in a world is solved, **Level 2** opens there (with a "New levels unlocked!" party). Each world's Level 2 has a new place (the Pride Lands at night, a hidden waterfall, inside the circus ring, the Agrabah market, a frozen pond, the rock classroom, a beach day), 15 new questions, 6 new stickers and a new world badge. Progress is never reset: it is saved per question, so finishing Level 1 opens Level 2 straight away on refresh. The Grown-ups page can open every Level 2 on a device where Level 1 was played elsewhere.
+
+Level 2 is a small step up: every world uses 15 different kinds of story once each ("times as many", "how many more", change from money, "how many groups of 8", 23 × 3, two kinds added together, and so on). `npm run check:math` makes sure no Level 2 question repeats the maths of any other question in the game, and flags stories that read too alike.
+
 ## The questions
 
 100 questions in [`src/questions.js`](src/questions.js), at Norwegian 3rd grade level (3. trinn):
